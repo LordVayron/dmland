@@ -51,7 +51,7 @@ It runs on your own computer with **Node 24 and no npm dependencies**. Your toke
 You need **Node 24 or newer**.
 
 ```bash
-git clone https://github.com/<your-user>/dmland.git
+git clone https://github.com/LordVayron/dmland.git
 cd dmland
 npm test        # optional: runs the tests, no Meta account needed
 npm start       # opens on http://localhost:3000
