@@ -189,6 +189,10 @@
   @media (prefers-reduced-motion: reduce) { .rise, .toast div, .modal .box { animation: none; } }
 
   .grid > *, .editor > * { min-width: 0; } body { overflow-x: hidden; }
+  .anstack > .card, .masonry > .card { min-width: 0; }
+  .masonry { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 18px; margin-top: 18px; align-items: start; }
+  .mcol { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .mcol > .card { margin: 0; }
   @media (max-width: 1100px) { .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g-main, .g-2, .editor { grid-template-columns: minmax(0, 1fr); } .preview { position: static; } }
   @media (max-width: 900px) {
     .kpi { padding: 14px; } .kpi .num { font-size: 30px; } .kpi .lb { font-size: 13px; min-height: 0; } .kpi .ic { width: 32px; height: 32px; margin-right: 8px; } .acards { grid-template-columns: minmax(0, 1fr); } .top { gap: 10px; } .pill { font-size: 12.5px; padding: 7px 12px; }
@@ -662,15 +666,13 @@ async function viewAnalisis() {
   }).join('') : `<p class="mute">${T('Turn on "Test two versions" in an automation that asks for the email to compare messages.')}</p>`;
 
   $('#main').innerHTML = header('Analytics', rangePills()) + `
-  <div class="grid g-2">
-   <div>
+  <div class="anstack">
     <div class="card rise" style="--i:1"><h2>${ic('play')}${T('Your reels')}</h2>
       ${a.reels.length ? `<div style="overflow-x:auto"><table class="tbl rt"><thead><tr><th>Reel</th><th>DMs</th><th>Emails</th><th>Likes</th><th>${T('Views')}</th><th>${T('Saves')}</th><th>${T('Shares')}</th><th>${T('Comments')}</th><th>${T('Used the keyword')}</th></tr></thead><tbody>${reelRows}</tbody></table></div>
         <p class="mute" style="margin:10px 0 0">${T('"Used the keyword" compares comments with the keyword against all comments on the reel. If it is low, the video may not make the keyword clear.')}</p>` : `<p class="mute">${T('No reels with activity in this period yet.')}</p>`}</div>
     <div class="card rise mt" style="--i:3"><h2>${T('Reels without automation')}</h2>
       ${free.length ? `<div class="freegrid">${free.slice(0, 8).map(([cid, m]) => `<button class="fr" data-fc="${cid}" data-fm="${esc(m.id)}" title="${esc((m.caption || '').slice(0, 80))}">${thumbHtml(cid, m.id, 'rthumb big')}<span>${T('Create')}</span></button>`).join('')}</div><p class="mute" style="margin:10px 0 0">${T('Tap one to create an automation for it.')}</p>` : `<p class="mute">${T('All your recent reels have an automation (or are still loading).')}</p>`}</div>
-   </div>
-   <div>
+   <div class="masonry">
     <div class="card rise" style="--i:1"><h2>👁 ${T('Account reach and views')}</h2>${a.insights.has ? `<div class="kv"><div><b>${num(a.insights.views)}</b><span>${T`views in ${periodo()}`}</span></div><div><b>${num(a.insights.reach)}</b><span>${T('accounts reached')}</span></div></div>${a.insights.series.length > 1 ? sparkline(a.insights.series.map((x) => x.views ?? 0), '#5ab4f6', 300, 60) : ''}<p class="mute" style="margin:8px 0 0">${T('A snapshot is saved every day; the chart grows over time.')}</p>` : `<p class="mute">${T('No data yet: read every 30 minutes.')}</p>`}</div>
     <div class="card rise mt" style="--i:2"><h2>${ic('bolt')}${T('Speed')}</h2>
       <div class="kv"><div><b>${fmtDur(sp.medianLagSec)}</b><span>${T('from comment to DM')}</span></div><div><b>${fmtDur(sp.medianToEmailSec)}</b><span>${T('until they give their email')}</span></div><div><b class="${sp.lateCount ? 'warnc' : ''}">${sp.lateCount}</b><span>${T('handled late (over 5 min)')}</span></div></div>
@@ -690,8 +692,27 @@ async function viewAnalisis() {
       ${fo.series.length > 1 ? `<div class="lgrow"><b class="lgnum">${num(fo.latest)}</b><span class="${fo.delta > 0 ? 'up' : fo.delta < 0 ? 'down' : 'mute'}">${fo.delta > 0 ? '+' : ''}${fo.delta} ${T('in 30 days')}</span></div>${sparkline(fo.series.map((x) => x.f), '#5ab4f6', 300, 60)}` : `<p class="mute">${fo.latest != null ? `${num(fo.latest)} ${T('followers. The chart appears once there is more than one day of data.')}` : T('No data yet: a daily snapshot is taken.')}</p>`}</div>
    </div>
   </div>`;
+  masonry($('.masonry'));
   bindRange(viewAnalisis); fillThumbs();
   document.querySelectorAll('.fr').forEach((b) => (b.onclick = () => { S.pendingMedia = { channel: Number(b.dataset.fc), media: b.dataset.fm }; location.hash = '#/automatizaciones'; }));
+}
+
+/* Puts cards in the shortest column so columns stay balanced (no dead space); one column on narrow screens. */
+let masonryOnResize = null;
+function shortest(cols) { let t = cols[0]; for (const c of cols) if (c.offsetHeight < t.offsetHeight) t = c; return t; }
+function masonry(box) {
+  if (!box) return;
+  const cards = [...box.children], wide = () => innerWidth > 1000;
+  const place = () => {
+    const cols = Array.from({ length: wide() ? 2 : 1 }, () => Object.assign(document.createElement('div'), { className: 'mcol' }));
+    box.style.setProperty('--n', cols.length); box.replaceChildren(...cols);
+    for (const c of cards) shortest(cols).appendChild(c);
+  };
+  place();
+  let was = wide();
+  removeEventListener('resize', masonryOnResize);
+  masonryOnResize = () => { if (!box.isConnected) return removeEventListener('resize', masonryOnResize); if (wide() !== was) { was = wide(); place(); } };
+  addEventListener('resize', masonryOnResize);
 }
 
 /* ---------- Automations ---------- */
