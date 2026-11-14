@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DMLand</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Tokens: change these values to restyle the dashboard */
+    --font: 'Manrope', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+    --ink: #f6f1ea; --ink-2: #c9bfb4; --ink-3: #8f857b;
+    --glass: rgba(255,255,255,.055); --glass-2: rgba(255,255,255,.09); --line: rgba(255,255,255,.12);
+    --r-lg: 24px; --r-md: 16px; --r-sm: 12px;
+    --amber: #f4b13f; --orange: #f0693a; --violet: #8f6bf2; --indigo: #6b3fd6; --rose: #e8678a; --pink: #d63f8a; --sky: #58b0f5; --blue: #5b7cf2;
+    --g-amber: linear-gradient(135deg, #f6b73f, #f0693a);
+    --g-violet: linear-gradient(135deg, #9a76f5, #6a3fd4);
+    --g-rose: linear-gradient(135deg, #ee6f8c, #d63f8a);
+    --g-blue: linear-gradient(135deg, #5ab4f6, #5b78f0);
+    --ok: #4fd08a; --warn: #f4b13f; --bad: #ef5b6b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: var(--font); color: var(--ink); font-size: 15px; line-height: 1.45;
+    background:
+      radial-gradient(1100px 700px at 95% 0%, #f9bf55 0%, transparent 60%),
+      radial-gradient(900px 700px at 100% 100%, #7b5ad6 0%, transparent 60%),
+      radial-gradient(900px 700px at 0% 100%, #c9794b 0%, transparent 60%),
+      #6a4338;
+    background-attachment: fixed;
+  }
+  .stage { padding: 24px; min-height: 100vh; }
+  .window {
+    display: grid; grid-template-columns: 252px 1fr; min-height: calc(100vh - 48px);
+    border-radius: 30px; overflow: hidden; border: 1px solid rgba(255,255,255,.28);
+    background: linear-gradient(135deg, rgba(23,17,21,.94), rgba(34,21,32,.9));
+    box-shadow: 0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.2);
+    position: relative;
+  }
+  .window::before { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(700px 420px at 85% -5%, rgba(244,177,63,.16), transparent 70%), radial-gradient(600px 500px at 100% 100%, rgba(143,107,242,.14), transparent 70%); }
+
+  /* ---------- sidebar ---------- */
+  .side { background: #09070a; padding: 22px 16px; display: flex; flex-direction: column; gap: 18px; position: relative; z-index: 3; border-right: 1px solid rgba(255,255,255,.06); }
+  .logo { display: flex; align-items: center; gap: 11px; font-weight: 800; font-size: 19px; letter-spacing: -.3px; padding: 2px 6px; }
+  .logo svg { width: 38px; height: 38px; flex: none; }
+  .brandsw { position: relative; }
+  .brandbtn { width: 100%; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 16px; border: 0; cursor: pointer; font: inherit; font-weight: 700; color: #fff;
+    background: linear-gradient(135deg, #58b0f5, #6d7df2); box-shadow: 0 8px 24px rgba(88,176,245,.25); }
+  .brandbtn .name { flex: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brandbtn svg { width: 18px; height: 18px; flex: none; }
+  .bavatar { width: 28px; height: 28px; border-radius: 50%; background: #0d0a0e; display: grid; place-items: center; font-size: 13px; font-weight: 800; color: #fff; flex: none; }
+  .brandmenu { position: absolute; left: 0; right: 0; top: calc(100% + 8px); background: #16111a; border: 1px solid var(--line); border-radius: 16px; padding: 6px; z-index: 20; display: none; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+  .brandmenu.open { display: block; }
+  .brandmenu button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 11px; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; text-align: left; }
+  .brandmenu button:hover, .brandmenu button.on { background: var(--glass-2); }
+  nav.menu { display: flex; flex-direction: column; gap: 4px; }
+  nav.menu a { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 14px; color: var(--ink-2); font-weight: 600; text-decoration: none; cursor: pointer; transition: background .15s, color .15s; }
+  nav.menu a:hover { background: var(--glass); color: var(--ink); }
+  nav.menu a.on { background: linear-gradient(135deg, #58b0f5, #6d85f3); color: #fff; box-shadow: 0 8px 22px rgba(88,176,245,.25); }
+  nav.menu svg { width: 20px; height: 20px; flex: none; }
+  .sidefoot { margin-top: auto; font-size: 12.5px; color: var(--ink-3); padding: 0 8px; }
+
+  /* ---------- main ---------- */
+  main { position: relative; z-index: 2; padding: 26px 30px 40px; min-width: 0; }
+  .top { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+  .top h1 { margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -.8px; flex: 1; min-width: 160px; }
+  .pill { display: inline-flex; align-items: center; gap: 9px; padding: 9px 16px; border-radius: 999px; background: rgba(255,255,255,.09); border: 1px solid var(--line); font-weight: 600; font-size: 13.5px; color: var(--ink); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px rgba(79,208,138,.18); flex: none; }
+  .dot.warn { background: var(--warn); box-shadow: 0 0 0 4px rgba(244,177,63,.18); } .dot.bad { background: var(--bad); box-shadow: 0 0 0 4px rgba(239,91,107,.18); } .dot.off { background: #777; box-shadow: none; }
+  .iconbtn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--glass-2); border: 1px solid var(--line); color: var(--ink); cursor: pointer; }
+  .iconbtn svg { width: 19px; height: 19px; }
+
+  .card { background: var(--glass); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px 22px; backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); min-width: 0; }
+  .card h2 { margin: 0 0 14px; font-size: 16.5px; font-weight: 700; display: flex; align-items: center; gap: 10px; letter-spacing: -.2px; }
+  .card h2 svg { width: 19px; height: 19px; color: var(--ink-3); }
+  .grid { display: grid; gap: 18px; } .g4 { grid-template-columns: repeat(4, 1fr); } .g-main { grid-template-columns: 1.9fr 1fr; } .g-2 { grid-template-columns: 1.5fr 1fr; }
+  .mt { margin-top: 18px; }
+
+  .kpi { border-radius: var(--r-lg); padding: 18px 20px; color: #fff; position: relative; overflow: hidden; box-shadow: 0 14px 34px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.35); }
+  .kpi::after { content: ''; position: absolute; inset: 0; background: radial-gradient(240px 120px at 20% 0%, rgba(255,255,255,.22), transparent 70%); pointer-events: none; }
+  .kpi .ic { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,.22); display: grid; place-items: center; float: left; margin-right: 12px; }
+  .kpi .ic svg { width: 20px; height: 20px; }
+  .kpi .lb { font-size: 14px; font-weight: 600; opacity: .95; padding-top: 2px; min-height: 40px; }
+  .kpi .num { font-size: 40px; font-weight: 800; letter-spacing: -1.2px; line-height: 1.1; margin-top: 10px; clear: both; }
+  .k-amber { background: var(--g-amber); } .k-violet { background: var(--g-violet); } .k-rose { background: var(--g-rose); } .k-blue { background: var(--g-blue); }
+
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th { text-align: left; font-size: 12px; font-weight: 600; color: var(--ink-3); padding: 0 10px 10px; letter-spacing: .3px; }
+  .tbl td { padding: 11px 10px; border-top: 1px solid rgba(255,255,255,.07); font-size: 14px; vertical-align: middle; }
+  .tbl td.mute { white-space: nowrap; }
+  .who { display: flex; align-items: center; gap: 11px; font-weight: 600; }
+  .av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 800; color: #fff; flex: none; }
+  .st { display: inline-flex; align-items: center; gap: 8px; padding: 5px 13px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1px solid transparent; }
+  .st::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .st.ok { color: var(--ok); background: rgba(79,208,138,.12); border-color: rgba(79,208,138,.25); }
+  .st.warn { color: var(--warn); background: rgba(244,177,63,.12); border-color: rgba(244,177,63,.25); }
+  .st.bad { color: var(--bad); background: rgba(239,91,107,.12); border-color: rgba(239,91,107,.25); }
+  .mute { color: var(--ink-3); font-size: 13px; }
+
+  .bars-row { display: flex; align-items: center; gap: 14px; margin: 14px 0; font-weight: 600; }
+  .bars-row .nm { width: 78px; flex: none; } .bars-row .tr { flex: 1; height: 10px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; } .bars-row .tr i { display: block; height: 100%; border-radius: 99px; } .bars-row .pc { width: 46px; text-align: right; color: var(--ink-2); }
+
+  .btn { display: inline-flex; align-items: center; gap: 9px; padding: 11px 22px; border-radius: 999px; border: 1px solid transparent; font: inherit; font-weight: 700; cursor: pointer; color: #fff; transition: transform .12s, filter .15s; white-space: nowrap; }
+  .btn:hover { filter: brightness(1.08); } .btn:active { transform: scale(.98); }
+  .btn.pri { background: linear-gradient(100deg, #f6a93b, #e0587a 55%, #8f6bf2); box-shadow: 0 10px 26px rgba(224,88,122,.3); }
+  .btn.sec { background: var(--glass-2); border-color: var(--line); }
+  .btn.del { background: rgba(239,91,107,.12); border-color: rgba(239,91,107,.3); color: #ff8d99; }
+  .btn.sm { padding: 7px 14px; font-size: 13px; }
+  .btn svg { width: 17px; height: 17px; }
+  .filters { display: flex; gap: 9px; margin-bottom: 18px; flex-wrap: wrap; }
+  .fpill { padding: 8px 20px; border-radius: 999px; background: rgba(255,255,255,.07); border: 1px solid var(--line); color: var(--ink-2); font: inherit; font-weight: 600; cursor: pointer; }
+  .fpill.on { background: #f6e7c0; color: #1a1410; border-color: transparent; }
+
+  /* automation cards */
+  .acards { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 18px; }
+  .acard { display: flex; gap: 16px; padding: 16px; border-radius: var(--r-lg); border: 1px solid var(--line); cursor: pointer; position: relative; overflow: hidden; transition: transform .15s, border-color .15s; min-height: 190px; }
+  .acard:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.28); }
+  .acard.c0 { background: linear-gradient(135deg, rgba(244,177,63,.16), rgba(255,255,255,.04)); } .acard.c1 { background: linear-gradient(135deg, rgba(143,107,242,.2), rgba(255,255,255,.04)); } .acard.c2 { background: linear-gradient(135deg, rgba(232,103,138,.2), rgba(255,255,255,.04)); }
+  .thumb { width: 104px; height: 166px; border-radius: 16px; flex: none; background: var(--g-violet) center/cover; position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,.2); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .play { position: absolute; inset: 0; display: grid; place-items: center; }
+  .thumb .play span { width: 38px; height: 38px; border-radius: 50%; background: rgba(0,0,0,.5); display: grid; place-items: center; backdrop-filter: blur(4px); }
+  .thumb .play svg { width: 16px; height: 16px; color: #fff; margin-left: 2px; }
+  .acard .info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .acard h3 { margin: 4px 0 10px; font-size: 18px; font-weight: 800; letter-spacing: -.3px; line-height: 1.2; }
+  .chip { display: inline-block; padding: 4px 13px; border-radius: 999px; background: rgba(143,107,242,.35); border: 1px solid rgba(180,160,255,.35); font-size: 13px; font-weight: 600; margin: 0 6px 6px 0; }
+  .acard .meta { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--ink-2); font-weight: 600; font-size: 14px; }
+  .acard .meta svg { width: 16px; height: 16px; vertical-align: -3px; margin-right: 6px; }
+  .newcard { border: 2px dashed rgba(255,255,255,.22); border-radius: var(--r-lg); display: grid; place-items: center; min-height: 190px; color: var(--ink-2); font-weight: 700; cursor: pointer; background: transparent; font-family: inherit; font-size: 16px; }
+  .newcard:hover { border-color: rgba(255,255,255,.4); color: var(--ink); }
+  .newcard .plus { width: 52px; height: 52px; border-radius: 50%; background: var(--glass-2); display: grid; place-items: center; margin: 0 auto 10px; } .newcard .plus svg { width: 24px; height: 24px; }
+  .tgl { width: 46px; height: 26px; border-radius: 99px; background: rgba(255,255,255,.22); position: relative; cursor: pointer; border: 0; flex: none; transition: background .2s; }
+  .tgl::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+  .tgl.on { background: #4aa8f5; } .tgl.on::after { transform: translateX(20px); }
+
+  /* editor */
+  .editor { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr); gap: 22px; align-items: start; }
+  .step { margin-bottom: 18px; } .step > .lbl { display: flex; align-items: center; gap: 10px; font-weight: 700; margin-bottom: 10px; font-size: 15.5px; }
+  .step .n { width: 24px; height: 24px; border-radius: 50%; background: var(--g-amber); display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #1a1410; }
+  input[type=text], input[type=url], input[type=number], textarea, select { width: 100%; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: rgba(0,0,0,.28); color: var(--ink); font: inherit; outline: none; transition: border-color .15s, box-shadow .15s; }
+  input:focus, textarea:focus, select:focus { border-color: rgba(88,176,245,.7); box-shadow: 0 0 0 3px rgba(88,176,245,.18); }
+  select option { background: #1b1520; color: var(--ink); }
+  textarea { resize: vertical; min-height: 92px; }
+  label.f { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-3); margin: 0 0 6px 2px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .reels { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 10px; }
+  .reel { width: 78px; height: 124px; border-radius: 13px; flex: none; position: relative; cursor: pointer; border: 2px solid transparent; overflow: hidden; background: var(--g-violet); }
+  .reel img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .reel.sel { border-color: #5ab4f6; box-shadow: 0 0 0 3px rgba(90,180,246,.3); }
+  .reel .ck { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; background: #4aa8f5; display: none; place-items: center; } .reel.sel .ck { display: grid; } .reel .ck svg { width: 13px; height: 13px; color: #fff; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; border-radius: 14px; border: 1px solid var(--line); background: rgba(0,0,0,.28); align-items: center; }
+  .chips .chip { margin: 0; display: inline-flex; align-items: center; gap: 8px; } .chips .chip b { cursor: pointer; opacity: .7; font-weight: 800; } .chips .chip b:hover { opacity: 1; }
+  .chips input { flex: 1; min-width: 120px; border: 0; background: transparent; padding: 6px 6px; box-shadow: none; }
+  details.adv { border-top: 1px solid var(--line); padding-top: 14px; } details.adv summary { cursor: pointer; font-weight: 700; color: var(--ink-2); margin-bottom: 12px; }
+  .preview { position: sticky; top: 20px; }
+  .phone { width: 100%; max-width: 330px; margin: 6px auto 0; border-radius: 42px; padding: 10px; background: #0b0b0d; border: 1px solid rgba(255,255,255,.25); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+  .screen { border-radius: 33px; overflow: hidden; background: #f7f7f8; color: #111; min-height: 520px; display: flex; flex-direction: column; font-size: 13.5px; }
+  .ig-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 8px; background: #fff; font-weight: 800; font-size: 17px; }
+  .ig-post { height: 150px; background: var(--g-violet) center/cover; }
+  .ig-c { display: flex; gap: 10px; padding: 11px 14px 0; background: #fff; } .ig-c.r { padding-left: 46px; padding-bottom: 12px; }
+  .ig-c .a { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 12px; flex: none; }
+  .ig-c b { font-weight: 700; } .ig-c small { display: block; color: #8a8a8f; margin-top: 2px; }
+  .dm { margin-top: auto; background: #fff; border-top-left-radius: 22px; border-top-right-radius: 22px; box-shadow: 0 -8px 24px rgba(0,0,0,.12); padding: 12px 14px 14px; }
+  .dm .hd { display: flex; align-items: center; gap: 10px; font-weight: 700; margin-bottom: 12px; } .dm .hd small { display: block; font-weight: 500; color: #8a8a8f; }
+  .bubble { background: #efeff1; border-radius: 18px; padding: 10px 13px; max-width: 92%; white-space: pre-wrap; word-break: break-word; }
+  [hidden] { display: none !important; }
+  .seg { display: inline-flex; padding: 4px; gap: 4px; border-radius: 999px; background: rgba(0,0,0,.3); border: 1px solid var(--line); flex-wrap: wrap; }
+  .seg button { padding: 9px 18px; border-radius: 999px; border: 0; background: none; color: var(--ink-2); font: inherit; font-weight: 700; cursor: pointer; }
+  .seg button.on { background: var(--g-amber); color: #1a1410; }
+  .bubble { margin-bottom: 8px; } .bubble.me { margin-left: auto; background: #3797f0; color: #fff; }
+  .st.mute { color: var(--ink-3); background: rgba(255,255,255,.06); border-color: var(--line); }
+  .linkcard { margin-top: 8px; border-radius: 14px; background: #fff; border: 1px solid #e3e3e6; padding: 10px 12px; max-width: 92%; font-weight: 700; } .linkcard small { display: block; color: #8a8a8f; font-weight: 500; word-break: break-all; }
+  .simout { background: rgba(0,0,0,.3); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; white-space: pre-wrap; font-size: 13px; margin-top: 12px; }
+
+  .gauge { position: relative; display: grid; place-items: center; padding-top: 6px; } .gauge svg { width: 100%; max-width: 260px; } .gauge .gv { position: absolute; bottom: 12px; text-align: center; font-size: 30px; font-weight: 800; letter-spacing: -.8px; } .gauge .gv small { display: block; font-size: 13px; color: var(--ink-2); font-weight: 600; letter-spacing: 0; }
+
+  .toast { position: fixed; right: 26px; bottom: 26px; z-index: 100; display: flex; flex-direction: column; gap: 10px; }
+  .toast div { padding: 13px 18px; border-radius: 16px; background: #1c1520; border: 1px solid var(--line); box-shadow: 0 16px 40px rgba(0,0,0,.5); font-weight: 600; max-width: 380px; animation: up .25s ease; }
+  .toast .bad { border-color: rgba(239,91,107,.5); color: #ffb3bb; } .toast .good { border-color: rgba(79,208,138,.5); }
+  .modal { position: fixed; inset: 0; z-index: 90; background: rgba(8,5,10,.6); backdrop-filter: blur(6px); display: grid; place-items: center; padding: 20px; }
+  .modal .box { background: #1a131d; border: 1px solid var(--line); border-radius: 24px; padding: 26px; max-width: 420px; width: 100%; box-shadow: 0 30px 80px rgba(0,0,0,.6); animation: up .2s ease; } .modal h3 { margin: 0 0 8px; font-size: 18px; } .modal .act { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .empty { text-align: center; padding: 40px 20px; color: var(--ink-2); } .empty .big { font-size: 20px; font-weight: 800; color: var(--ink); margin-bottom: 6px; }
+  @keyframes up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .rise { animation: up .45s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i, 0) * 55ms); }
+  @media (prefers-reduced-motion: reduce) { .rise, .toast div, .modal .box { animation: none; } }
+
+  .grid > *, .editor > * { min-width: 0; } body { overflow-x: hidden; }
+  @media (max-width: 1100px) { .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g-main, .g-2, .editor { grid-template-columns: minmax(0, 1fr); } .preview { position: static; } }
+  @media (max-width: 900px) {
+    .kpi { padding: 14px; } .kpi .num { font-size: 30px; } .kpi .lb { font-size: 13px; min-height: 0; } .kpi .ic { width: 32px; height: 32px; margin-right: 8px; } .acards { grid-template-columns: minmax(0, 1fr); } .top { gap: 10px; } .pill { font-size: 12.5px; padding: 7px 12px; }
+    .stage { padding: 0; } .window { grid-template-columns: minmax(0, 1fr); border-radius: 0; min-height: 100vh; border: 0; }
+    .side { flex-direction: row; flex-wrap: wrap; align-items: center; padding: 14px; gap: 10px; } nav.menu { flex-direction: row; overflow-x: auto; width: 100%; order: 3; } nav.menu a { padding: 9px 13px; white-space: nowrap; } .sidefoot { display: none; } .brandsw { flex: 1; min-width: 150px; }
+    main { padding: 18px 14px 40px; } .top h1 { font-size: 24px; } .row2 { grid-template-columns: 1fr; } .tbl .hide-s { display: none; }
+  }
+
+  /* ---- Home and Analytics ---- */
+  .banner { display: flex; gap: 16px; align-items: center; padding: 20px 24px; border-radius: var(--r-lg); background: linear-gradient(110deg, rgba(246,183,63,.9), rgba(224,88,122,.85) 55%, rgba(143,107,242,.9)); color: #fff; box-shadow: 0 14px 34px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.35); }
+  .bn-ic { width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,.22); display: grid; place-items: center; flex: none; } .bn-ic svg { width: 24px; height: 24px; }
+  .bn-t { font-size: 22px; font-weight: 800; letter-spacing: -.4px; line-height: 1.25; } .bn-s { opacity: .92; font-weight: 600; margin-top: 2px; }
+  .fnotes { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 6px; color: var(--ink-2); font-size: 14px; }
+  .bgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+  .bcard { border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--glass); overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); min-width: 0; }
+  .bhead { display: flex; align-items: center; gap: 10px; padding: 12px 16px; color: #fff; font-size: 16px; } .bhead .bavatar { background: rgba(0,0,0,.3); } .bhead b { flex: 1; }
+  .bbody { padding: 14px 16px 16px; } .bnum b { font-size: 36px; font-weight: 800; letter-spacing: -1px; display: block; line-height: 1.05; } .bnum span { color: var(--ink-2); font-size: 13.5px; font-weight: 600; }
+  .bspark { margin: 8px 0 4px; } .bmid { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 6px 0 10px; }
+  .bring, .breel { display: flex; flex-direction: column; align-items: center; gap: 4px; } .bring small, .breel small { color: var(--ink-3); font-size: 12px; }
+  .bthumb { width: 52px; height: 84px; border-radius: 10px; background: var(--g-violet); overflow: hidden; border: 1px solid rgba(255,255,255,.2); } .bthumb img, .rthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .bfoot { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--ink-2); font-size: 13px; font-weight: 600; border-top: 1px solid rgba(255,255,255,.08); padding-top: 10px; }
+  .up { color: var(--ok); font-style: normal; font-weight: 700; } .down { color: var(--bad); font-style: normal; font-weight: 700; }
+  .grid.g3 { grid-template-columns: repeat(3, 1fr); }
+  .legend { display: flex; gap: 18px; margin-top: 6px; color: var(--ink-2); font-size: 13px; } .legend i, .dleg i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+  .heat { overflow-x: auto; } .hm-row { display: grid; grid-template-columns: 34px repeat(24, minmax(0, 1fr)); gap: 2px; margin: 2px 0; align-items: center; } .hm-row i { aspect-ratio: 1; border-radius: 3px; display: block; } .hm-l { font-size: 11.5px; color: var(--ink-3); } .hm-ax span { font-size: 10px; color: var(--ink-3); text-align: left; }
+  .don { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; } .dleg { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; } .dleg b { margin-left: 6px; }
+  .lgrow { display: flex; align-items: baseline; gap: 10px; } .lgnum { font-size: 38px; font-weight: 800; letter-spacing: -1px; }
+  .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; } .kv div { display: flex; flex-direction: column; } .kv b { font-size: 28px; font-weight: 800; letter-spacing: -.6px; } .kv span { color: var(--ink-3); font-size: 12.5px; font-weight: 600; } .warnc { color: var(--warn); }
+  .rthumb { width: 34px; height: 54px; border-radius: 7px; overflow: hidden; flex: none; background: var(--g-violet); border: 1px solid rgba(255,255,255,.18); } .rthumb.big { width: 72px; height: 114px; border-radius: 12px; }
+  .cap { font-weight: 500; color: var(--ink-2); font-size: 13px; max-width: 240px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rt td { vertical-align: middle; } .kshare { display: flex; align-items: center; gap: 8px; min-width: 120px; } .kshare .tr { flex: 1; height: 8px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; display: block; } .kshare .tr i { display: block; height: 100%; }
+  .freegrid { display: flex; flex-wrap: wrap; gap: 12px; } .fr { background: none; border: 1px solid var(--line); border-radius: 16px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; } .fr:hover { border-color: rgba(255,255,255,.4); }
+  .abt { margin-bottom: 14px; } .abt .tr { flex: 1; height: 10px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; display: block; } .abt .tr i { display: block; height: 100%; }
+  @media (max-width: 1100px) { .grid.g3 { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 900px) { .bn-t { font-size: 18px; } .banner { padding: 16px; } }
+
+  /* ---- Home v2: reels first ---- */
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .kt { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-radius: var(--r-lg); color: #fff; box-shadow: 0 12px 28px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.3); min-width: 0; }
+  .kt b { display: block; font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1.05; } .kt small { font-weight: 600; opacity: .95; font-size: 13.5px; }
+  .kti { width: 38px; height: 38px; border-radius: 12px; background: rgba(255,255,255,.22); display: grid; place-items: center; flex: none; } .kti svg { width: 20px; height: 20px; }
+  .k-amber { background: var(--g-amber); } .k-violet { background: var(--g-violet); } .k-rose { background: var(--g-rose); } .k-blue { background: var(--g-blue); }
+  .reelsec { display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); gap: 16px; }
+  .rbig { border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--glass); padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .rbt { font-weight: 800; font-size: 15px; } .star { color: #f6b73f; }
+  .rbm { display: flex; gap: 14px; align-items: center; } .rbthumb { width: 104px; height: 170px; border-radius: 14px; overflow: hidden; flex: none; background: var(--g-violet); border: 1px solid rgba(255,255,255,.2); } .rbthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .rbn b { font-size: 46px; font-weight: 800; letter-spacing: -1.5px; line-height: 1; display: block; } .rbn > span:first-of-type { font-size: 18px; font-weight: 700; margin-right: 8px; } .rbs { color: var(--ink-2); font-size: 13.5px; margin-top: 8px; font-weight: 600; }
+  .kwchip { display: inline-block; padding: 3px 10px; border-radius: 99px; background: rgba(154,118,245,.28); border: 1px solid rgba(154,118,245,.5); font-size: 12.5px; font-weight: 700; }
+  .rgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .rcard { display: flex; gap: 12px; padding: 12px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--glass); min-width: 0; }
+  .rcthumb { width: 62px; height: 100px; border-radius: 10px; overflow: hidden; flex: none; background: var(--g-violet); border: 1px solid rgba(255,255,255,.18); } .rcthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .rcbody { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; } .rcn { font-size: 15px; display: flex; align-items: center; gap: 6px; } .rcn b { font-size: 20px; font-weight: 800; } .rcs { color: var(--ink-2); font-size: 12.5px; font-weight: 600; } .rcsp { margin-top: auto; }
+  .sec { font-size: 20px; font-weight: 800; margin: 0 0 10px; }
+  .tcard { border-radius: var(--r-lg); padding: 16px 18px; color: #fff; box-shadow: 0 12px 28px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.3); min-width: 0; }
+  .tcard h3 { margin: 0 0 12px; font-size: 15.5px; font-weight: 800; display: flex; align-items: center; gap: 8px; } .tcard h3 svg { width: 18px; height: 18px; } .tcard p { margin: 10px 0 0; font-weight: 600; opacity: .95; }
+  .g-violet { background: var(--g-violet); } .g-rose { background: var(--g-rose); } .g-blue { background: var(--g-blue); } .g-amber { background: var(--g-amber); }
+  .g-sky { background: linear-gradient(135deg, #4aa8f0, #6f86f5); } .g-green { background: linear-gradient(135deg, #2fb67a, #22a39a); }
+  .hbars { display: flex; align-items: flex-end; gap: 5px; height: 84px; } .hb { flex: 1; border-radius: 5px 5px 2px 2px; background: rgba(255,255,255,.4); } .hb.pk { background: #fff; }
+  .hbl { display: flex; justify-content: space-between; font-size: 11px; opacity: .85; margin-top: 4px; }
+  .wrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; } .fr2 { background: none; border: 0; padding: 0; cursor: pointer; } .tcard .btn { margin-top: 10px; }
+  @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .reelsec { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 700px) { .rgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .rcthumb { width: 48px; height: 78px; } }
+
+  /* ---- Home v3: calmer look, half-width trends ---- */
+  .trend { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+  .trend4 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .trend4 .card { padding: 16px; } .trend4 .card h2 { font-size: 14px; margin-bottom: 8px; }
+  .trend4 .hm-row { gap: 1px; grid-template-columns: 26px repeat(24, minmax(0, 1fr)); } .trend4 .hm-l, .trend4 .hm-ax span { font-size: 9px; }
+  .trend4 .lgnum { font-size: 30px; }
+  .grid.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .banner { background: var(--glass); color: var(--ink); border: 1px solid var(--line); border-left: 3px solid #f6b73f; box-shadow: none; padding: 16px 20px; }
+  .banner .bn-ic { background: rgba(255,255,255,.07); width: 38px; height: 38px; } .banner .bn-ic svg { width: 19px; height: 19px; color: #f6b73f; }
+  .banner .bn-t { font-size: 18px; font-weight: 700; }
+  .tcard, .tcard.g-violet { background: var(--glass); border: 1px solid var(--line); border-top: 2px solid var(--acc, #9a76f5); color: var(--ink); box-shadow: none; }
+  .tcard h3 { font-size: 13px; font-weight: 700; color: var(--ink-2); letter-spacing: .2px; margin-bottom: 14px; }
+  .tcard p { color: var(--ink-2); font-weight: 500; font-size: 13.5px; opacity: 1; }
+  .tcard .lgnum { font-size: 30px; color: #fff; } .tcard .up { color: var(--ok); } .tcard .down { color: var(--bad); }
+  .hb { background: rgba(246,183,63,.28); } .hb.pk { background: #f6b73f; }
+  .hbl { opacity: 1; color: var(--ink-3); }
+  .alist { margin: 0 0 6px; padding-left: 18px; color: var(--ink); font-size: 13.5px; } .alist li { margin: 3px 0; }
+  .tcard .btn.pri { background: rgba(255,255,255,.1); border: 1px solid var(--line); box-shadow: none; color: var(--ink); }
+  @media (max-width: 1250px) { .grid.g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 1100px) { .trend { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 600px) { .trend4, .grid.g4 { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<div class="stage"><div class="window">
+  <aside class="side">
+    <div class="logo">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6b73f"/><stop offset=".55" stop-color="#e0587a"/><stop offset="1" stop-color="#7b5ad6"/></linearGradient></defs><path d="M20 3C10.6 3 3 9.9 3 18.4c0 4.6 2.2 8.7 5.7 11.5L7.6 37l6.8-3.4c1.8.5 3.6.8 5.6.8 9.4 0 17-6.9 17-15.4S29.4 3 20 3z" fill="url(#lg)"/><circle cx="13" cy="18.5" r="2.3" fill="#fff"/><circle cx="20" cy="18.5" r="2.3" fill="#fff"/><circle cx="27" cy="18.5" r="2.3" fill="#fff"/></svg>
+      <span>DMLand</span>
+    </div>
+    <div class="brandsw" id="brandsw"></div>
+    <nav class="menu" id="nav"></nav>
+    <div class="sidefoot" id="sidefoot"></div>
+  </aside>
+  <main id="main"></main>
+</div></div>
+<div class="toast" id="toast"></div>
+<div id="modal"></div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const store = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+/* ---------- language (interface only) ---------- */
+// English is the base language. Any other language is a file: public/lang/<code>.json
+//   { "name": "Español",
+//     "dict":     { "Home": "Inicio", "{0} send errors in {1}": "{0} errores de envío en {1}" },   // exact text -> translation ({0} = values)
+//     "patterns": [ ["^(\\d+) min ago$", "hace $1 min"] ],                                         // regex -> template ($1 raw, $t1 translated)
+//     "events":   [ ["^Connected @(.+)$", "Conectada @$1"] ] }                                      // same, for Activity log lines
+// Only what the dashboard shows is translated. Your messages, replies, names, keywords, comments and saved data
+// carry translate="no" and never pass through here.
+let LANG = store.get('lang', 'en');
+let PACK = null; // the loaded language file, or null while the language is English
+document.documentElement.lang = LANG;
+const compile = (list) => (list || []).map(([re, tpl]) => [new RegExp(re), tpl]);
+async function loadLang(code) {
+  PACK = null; LANG = 'en';
+  if (code && code !== 'en') {
+    try {
+      const r = await fetch('/lang/' + encodeURIComponent(code) + '.json'); if (!r.ok) throw new Error(r.statusText);
+      const j = await r.json(); PACK = { dict: j.dict || {}, rx: compile(j.patterns), ev: compile(j.events) }; LANG = code;
+    } catch { /* unknown language: stay in English */ }
+  }
+  document.documentElement.lang = LANG;
+}
+const fillTpl = (tpl, m) => tpl.replace(/\$(t?)(\d)/g, (_, t, i) => (t ? tr(m[i] ?? '') : m[i] ?? ''));
+function tr(s) {
+  if (!PACK) return s;
+  const k = String(s);
+  if (Object.prototype.hasOwnProperty.call(PACK.dict, k)) return PACK.dict[k];
+  for (const [re, tpl] of PACK.rx) { const m = k.match(re); if (m) return fillTpl(tpl, m); }
+  return s;
+}
+// T('plain text'), or T as a tagged template when the text has values: the translated text for the current language.
+const T = (strs, ...vals) => {
+  if (typeof strs === 'string') return tr(strs);
+  let key = strs[0]; for (let i = 0; i < vals.length; i++) key += '{' + i + '}' + strs[i + 1];
+  const t = PACK && Object.prototype.hasOwnProperty.call(PACK.dict, key) ? PACK.dict[key] : key;
+  return t.replace(/\{(\d+)\}/g, (_, i) => vals[i]);
+};
+// Activity log lines: shown translated only when a language is loaded; unknown lines are left as they are (the saved data never changes).
+const trEvent = (note) => { if (!PACK) return note; for (const [re, tpl] of PACK.ev) { const m = String(note).match(re); if (m) return fillTpl(tpl, m); } return note; };
+const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'CODE']);
+function trNode(n) {
+  if (n.nodeType === 3) {
+    const p = n.parentElement; if (!p || SKIP_TAGS.has(p.tagName) || p.closest('[translate="no"]')) return;
+    const m = n.nodeValue.match(/^(\s*)([\s\S]*?)(\s*)$/); if (!m[2]) return;
+    const out = tr(m[2]); if (out !== m[2]) n.nodeValue = m[1] + out + m[3];
+  } else if (n.nodeType === 1 && !SKIP_TAGS.has(n.tagName)) {
+    for (const a of ['placeholder', 'title', 'aria-label']) { const v = n.getAttribute(a); if (v) { const out = tr(v); if (out !== v) n.setAttribute(a, out); } }
+    n.childNodes.forEach(trNode);
+  }
+}
+new MutationObserver((recs) => { if (!PACK) return; for (const r of recs) { if (r.type === 'characterData') trNode(r.target); else r.addedNodes.forEach(trNode); } })
+  .observe(document.body, { childList: true, subtree: true, characterData: true });
+async function setLang(l) { ['#brandsw', '#nav', '#sidefoot'].forEach((q) => { const e = document.querySelector(q); if (e) e._h = null; }); await loadLang(l); store.set('lang', LANG); render(); }
+
+const api = async (path, method = 'GET', body) => {
+  const r = await fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.statusText); return j;
+};
+const toast = (msg, kind = 'good') => { const d = document.createElement('div'); d.className = kind; d.textContent = msg; $('#toast').append(d); setTimeout(() => d.remove(), kind === 'bad' ? 6500 : 3200); };
+const confirmBox = (title, text, okLabel = 'Delete') => new Promise((res) => {
+  $('#modal').innerHTML = `<div class="modal"><div class="box" role="dialog" aria-modal="true"><h3>${esc(title)}</h3><div class="mute">${esc(text)}</div><div class="act"><button class="btn sec" id="mc">Cancel</button><button class="btn del" id="mo">${esc(okLabel)}</button></div></div></div>`;
+  const close = (v) => { $('#modal').innerHTML = ''; res(v); };
+  $('#mc').onclick = () => close(false); $('#mo').onclick = () => close(true); $('.modal').onclick = (e) => { if (e.target.classList.contains('modal')) close(false); };
+});
+
+/* ---------- icons ---------- */
+const P = {
+  home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/>',
+  bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  chart: '<path d="M5 21V10M12 21V4M19 21v-7"/>',
+  users: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.5 0 4 1.8 4 4.5"/>',
+  meta: '<path d="M7 8c-2.5 0-4 2-4 4s1.5 4 4 4c4 0 6-8 10-8 2.5 0 4 2 4 4s-1.5 4-4 4c-4 0-6-8-10-8z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>', send: '<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',
+  chat: '<path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.5A8 8 0 1 1 21 12z"/>', alert: '<path d="M12 3 2 20h20z"/><path d="M12 10v5M12 18v.1"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',
+  play: '<path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/>', check: '<path d="m5 12 5 5 9-10"/>', chev: '<path d="m6 9 6 6 6-6"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>', clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
+  tag: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>', bolt2: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+};
+const ic = (n, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+
+/* ---------- state ---------- */
+const S = { brands: [], channels: [], autos: [], poller: null, media: {}, brand: store.get('brand', 'all'), tab: 'inicio', editing: null, filter: 'all' };
+const TABS = [['inicio', 'Home', 'home'], ['automatizaciones', 'Automations', 'bolt'], ['actividad', 'Activity', 'chart'], ['analisis', 'Analytics', 'trend'], ['contactos', 'Contacts', 'users'], ['conexion', 'Meta connection', 'meta'], ['ajustes', 'Settings', 'gear']];
+const inScope = (brandId) => S.brand === 'all' || String(brandId) === String(S.brand);
+const scopeChannels = () => S.channels.filter((c) => inScope(c.brand_id));
+const brandOf = (channelId) => S.brands.find((b) => b.id === S.channels.find((c) => c.id === channelId)?.brand_id);
+const chLabel = (id) => { const c = S.channels.find((c) => c.id === id); return c ? `${brandOf(id)?.name || '?'} · @${c.username}` : '?'; };
+const utc = (s) => new Date(String(s).replace(' ', 'T') + 'Z');
+const ago = (s) => { const m = Math.round((Date.now() - utc(s)) / 60000); if (m < 1) return 'just now'; if (m < 60) return `${m} min ago`; const h = Math.round(m / 60); return h < 24 ? `${h} h ago` : `${Math.round(h / 24)} d ago`; };
+const initials = (u) => String(u || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '?';
+const AVG = ['var(--g-amber)', 'var(--g-violet)', 'var(--g-rose)', 'var(--g-blue)'];
+const avatar = (u) => `<span class="av" style="background:${AVG[(String(u).length + (String(u).charCodeAt(0) || 0)) % 4]}">${esc(initials(u))}</span>`;
+const CAP = { waiting: '<span class="st warn">Waiting for email</span>', got_email: '<span class="st warn">Sending resource</span>', done: '<span class="st ok">Email captured</span>', expired: '<span class="st mute">No email</span>', failed: '<span class="st bad">Couldn\'t send</span>' };
+const stChip = (r) => r.status === 'error' ? '<span class="st bad">Error</span>' : r.capture_status ? CAP[r.capture_status] : r.status === 'done' ? '<span class="st ok">Sent</span>' : r.status === 'pending' ? '<span class="st warn">Waiting</span>' : '<span class="st bad">Error</span>';
+
+async function loadBase() {
+  [S.brands, S.channels, S.autos, S.poller] = await Promise.all([api('/api/brands'), api('/api/channels'), api('/api/automations'), api('/api/poller')]);
+  if (S.brand !== 'all' && !S.brands.some((b) => String(b.id) === String(S.brand))) S.brand = 'all';
+}
+const mediaInFlight = {};
+async function loadMedia(channelId) {
+  if (S.media[channelId]) return S.media[channelId];
+  if (mediaInFlight[channelId]) return mediaInFlight[channelId]; // callers that arrive while it loads wait for the same request
+  S.media[channelId] = null; // in progress
+  return (mediaInFlight[channelId] = (async () => {
+    try { const list = await api(`/api/channels/${channelId}/media`); S.media[channelId] = Object.fromEntries(list.map((m) => [m.id, m])); }
+    catch { S.media[channelId] = {}; }
+    delete mediaInFlight[channelId];
+    return S.media[channelId];
+  })());
+}
+const thumbOf = (channelId, mediaId) => { const m = S.media[channelId]?.[mediaId]; return m ? (m.thumbnail_url || m.media_url || '') : ''; };
+
+/* ---------- structure ---------- */
+const setHtml = (el, html) => { if (el._h === html) return false; el.innerHTML = html; el._h = html; return true; };
+function chrome() {
+  const cur = S.brand === 'all' ? null : S.brands.find((b) => String(b.id) === String(S.brand));
+  const bsHtml = `<button class="brandbtn" id="bb" aria-haspopup="listbox"><span class="bavatar">${esc(cur ? cur.name[0].toUpperCase() : '◎')}</span><span class="name" ${cur ? 'translate="no"' : ''}>${esc(cur ? cur.name : 'All brands')}</span>${ic('chev')}</button>
+    <div class="brandmenu" id="bm" role="listbox"><button data-b="all" class="${S.brand === 'all' ? 'on' : ''}"><span class="bavatar">◎</span>All brands</button>${S.brands.map((b) => `<button data-b="${b.id}" class="${String(b.id) === String(S.brand) ? 'on' : ''}"><span class="bavatar">${esc(b.name[0].toUpperCase())}</span><span translate="no">${esc(b.name)}</span></button>`).join('')}</div>`;
+  if (setHtml($('#brandsw'), bsHtml)) {
+  $('#bb').onclick = (e) => { e.stopPropagation(); $('#bm').classList.toggle('open'); };
+  $('#bm').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; S.brand = b.dataset.b; store.set('brand', S.brand); $('#bm').classList.remove('open'); render(); };
+  }
+  setHtml($('#nav'),  TABS.map(([k, l, i]) => `<a href="#/${k}" class="${S.tab === k ? 'on' : ''}">${ic(i)}${l}</a>`).join(''));
+  const p = S.poller;
+  setHtml($('#sidefoot'), p ? `${p.enabled ? 'Reading on' : 'Reading off'} · every ${p.intervalSec} s<br>${S.channels.length} account${S.channels.length === 1 ? '' : 's'} connected` : '');
+}
+document.addEventListener('click', () => $('#bm')?.classList.remove('open'));
+
+const pollPill = () => {
+  const p = S.poller; if (!p) return '';
+  if (!p.enabled) return '<span class="pill"><i class="dot off"></i>Comment reading · off</span>';
+  if (p.pausedUntil) return `<span class="pill" title="${esc(p.pauseReason)}"><i class="dot warn"></i>Paused by Meta until ${esc(new Date(p.pausedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</span>`;
+  if (p.lastError) return `<span class="pill" title="${esc(p.lastError)}"><i class="dot bad"></i>Comment reading · error</span>`;
+  return '<span class="pill"><i class="dot"></i>Comment reading · on</span>';
+};
+const header = (title, extra = '') => `<div class="top rise"><h1>${esc(title)}</h1>${extra}${pollPill()}<a class="iconbtn" href="#/ajustes" title="Settings" aria-label="Settings">${ic('gear')}</a></div>`;
+const noAccount = () => `<div class="card empty rise"><div class="big">Connect your first Instagram account</div>Without a connected account there is nothing to automate.<br><br><a class="btn pri" href="#/conexion">Go to Meta connection</a></div>`;
+
+/* ---------- Home ---------- */
+// All dashboard text goes through T(): it only changes what the panel shows, never your data or messages.
+S.range = ['today', '7', '30'].includes(store.get('range', '7')) ? store.get('range', '7') : '7';
+const RANGES = [['today', 'Today'], ['7', '7 days'], ['30', '30 days']];
+const periodo = () => ({ today: T('today'), 7: T('the last 7 days'), 30: T('the last 30 days') }[S.range]);
+const rangePills = () => `<div class="seg rise" id="rangeseg" role="tablist">${RANGES.map(([k, label]) => `<button type="button" data-r="${k}" class="${S.range === k ? 'on' : ''}" translate="no">${T(label)}</button>`).join('')}</div>`;
+const bindRange = (fn) => document.querySelectorAll('#rangeseg button').forEach((b) => (b.onclick = () => { S.range = b.dataset.r; store.set('range', S.range); fn(); }));
+const loadAnalytics = () => api(`/api/analytics?range=${S.range}${S.brand === 'all' ? '' : `&brand=${S.brand}`}`);
+const fmtDur = (s) => (s == null ? '—' : s < 60 ? `${Math.round(s)} s` : s < 3600 ? `${Math.round(s / 60)} min` : `${(s / 3600).toFixed(1)} h`);
+const num = (n) => Number(n ?? 0).toLocaleString(LANG);
+const DAYS = () => [T('Sun'), T('Mon'), T('Tue'), T('Wed'), T('Thu'), T('Fri'), T('Sat')];
+const DAYS_LONG = () => [T('Sunday'), T('Monday'), T('Tuesday'), T('Wednesday'), T('Thursday'), T('Friday'), T('Saturday')];
+const hour12 = (h) => (LANG === 'en' ? `${h % 12 || 12} ${h < 12 ? 'am' : 'pm'}` : `${h}:00`);
+const niceTop = (m) => [5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000].find((s) => s >= m) ?? Math.ceil(m / 1000) * 1000;
+const curve = (p) => p.map((q, i) => (i === 0 ? `M${q[0]},${q[1]}` : `C${(p[i - 1][0] + q[0]) / 2},${p[i - 1][1]} ${(p[i - 1][0] + q[0]) / 2},${q[1]} ${q[0]},${q[1]}`)).join(' ');
+let gid = 0;
+
+function areaChart(series, keys) { // keys: [[field, color1, color2, label]]
+  const W = 760, H = 250, pl = 38, pr = 12, pt = 16, pb = 28, id = ++gid;
+  const top = niceTop(Math.max(5, ...series.map((s) => Math.max(...keys.map((k) => s[k[0]])))));
+  const x = (i) => pl + ((W - pl - pr) * i) / Math.max(1, series.length - 1), y = (v) => H - pb - ((H - pb - pt) * v) / top;
+  let g = `<defs>${keys.map((k, i) => `<linearGradient id="ar${id}_${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${k[1]}" stop-opacity=".55"/><stop offset="1" stop-color="${k[1]}" stop-opacity="0"/></linearGradient>`).join('')}</defs>`;
+  for (let i = 0; i <= 2; i++) { const yy = y((top * i) / 2); g += `<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}" stroke="rgba(255,255,255,.09)"/><text x="${pl - 8}" y="${yy + 4}" text-anchor="end" fill="#8f857b" font-size="12">${top * i / 2}</text>`; }
+  series.forEach((s, i) => { if (i % 7 === 0 || (i === series.length - 1 && (series.length - 1) % 7 >= 3)) g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" fill="#8f857b" font-size="12">${s.date.slice(8)}/${s.date.slice(5, 7)}</text>`; });
+  keys.forEach((k, i) => {
+    const pts = series.map((s, j) => [x(j), y(s[k[0]])]);
+    g += `<path d="${curve(pts)} L${pts.at(-1)[0]},${H - pb} L${pts[0][0]},${H - pb} Z" fill="url(#ar${id}_${i})"/><path d="${curve(pts)}" fill="none" stroke="${k[1]}" stroke-width="3" stroke-linecap="round"/>`;
+    const lp = pts.at(-1); g += `<circle cx="${lp[0]}" cy="${lp[1]}" r="5" fill="${k[1]}" stroke="#fff" stroke-width="2"/>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${T('Chart of the last 30 days')}">${g}</svg>`;
+}
+function sparkline(vals, color = '#f6b73f', w = 150, h = 46) {
+  const id = ++gid, max = Math.max(1, ...vals), pts = vals.map((v, i) => [(w * i) / Math.max(1, vals.length - 1), h - 4 - ((h - 10) * v) / max]);
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sp${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".5"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${curve(pts)} L${w},${h} L0,${h} Z" fill="url(#sp${id})"/><path d="${curve(pts)}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+}
+function donut(parts, center, size = 124) { // parts: [{v, color}]
+  const r = 44, C = 2 * Math.PI * r, tot = parts.reduce((a, p) => a + p.v, 0) || 1; let off = 0;
+  const segs = parts.filter((p) => p.v > 0).map((p) => { const len = (C * p.v) / tot, s = `<circle cx="60" cy="60" r="${r}" fill="none" stroke="${p.color}" stroke-width="14" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 60 60)"/>`; off += len; return s; }).join('');
+  return `<svg viewBox="0 0 120 120" width="${size}" height="${size}" role="img"><circle cx="60" cy="60" r="${r}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="14"/>${segs}<text x="60" y="66" text-anchor="middle" font-size="19" font-weight="800" fill="#fff">${center}</text></svg>`;
+}
+function heatmap(grid) {
+  const max = Math.max(1, ...grid.flat()), names = DAYS(), order = [1, 2, 3, 4, 5, 6, 0];
+  return order.map((d) => `<div class="hm-row"><span class="hm-l">${names[d]}</span>${grid[d].map((n, h) => `<i style="background:rgba(244,177,63,${n ? 0.14 + (0.86 * n) / max : 0.06})" title="${names[d]} ${hour12(h)} · ${n}"></i>`).join('')}</div>`).join('')
+    + `<div class="hm-row hm-ax"><span class="hm-l"></span>${Array.from({ length: 24 }, (_, h) => `<span>${h % 6 === 0 ? h : ''}</span>`).join('')}</div>`;
+}
+function funnelSvg(f) {
+  const lab = [T('Comments with keyword'), T('DMs sent'), T('Emails captured'), T('Resources delivered')];
+  const col = [['#f8c24d', '#f08a3a'], ['#f2803a', '#e8587a'], ['#ec5a86', '#b84fd0'], ['#a07cf6', '#6a3fd4']];
+  const max = Math.max(1, ...f.map((s) => s.n)), W = 1000, H = 215, sw = 250, mid = 82, hs = f.map((s) => Math.max(0.3, s.n / max) * 140), id = ++gid;
+  let g = `<defs>${col.map((c, i) => `<linearGradient id="fg${id}_${i}" x1="0" x2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset="1" stop-color="${c[1]}"/></linearGradient>`).join('')}</defs>`;
+  f.forEach((s, i) => {
+    const x0 = i * sw, x1 = x0 + sw, hL = hs[i], hR = i < 3 ? hs[i + 1] : hs[i] * 0.88;
+    g += `<path d="M${x0},${mid - hL / 2} L${x1},${mid - hR / 2} L${x1},${mid + hR / 2} L${x0},${mid + hL / 2}Z" fill="url(#fg${id}_${i})"/>
+      <text x="${x0 + sw / 2}" y="${mid + 13}" text-anchor="middle" font-size="40" font-weight="800" fill="#fff">${num(s.n)}</text>
+      <text x="${x0 + sw / 2}" y="${H - 22}" text-anchor="middle" font-size="15" font-weight="600" fill="#d8cfc4">${lab[i]}</text>`;
+    if (i > 0 && s.rate != null) g += `<rect x="${x0 - 27}" y="${mid - 15}" rx="14" width="54" height="30" fill="rgba(22,15,24,.9)" stroke="rgba(255,255,255,.3)"/><text x="${x0}" y="${mid + 6}" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">${s.rate}%</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${T('Funnel: from comments to delivered resources')}">${g}</svg>`;
+}
+function thumbHtml(chId, mediaId, cls = 'bthumb') {
+  return `<div class="${cls}" data-th data-ch="${chId ?? ''}" data-m="${esc(mediaId ?? '')}"></div>`;
+}
+function fillThumbs() { // thumbnails arrive when each account\'s post list finishes loading
+  document.querySelectorAll('[data-th]').forEach((el) => {
+    if (!el.dataset.ch || !el.dataset.m || el.dataset.ok) return;
+    loadMedia(Number(el.dataset.ch)).then(() => { const m = S.media[el.dataset.ch]?.[el.dataset.m]; const u = m && (m.thumbnail_url || m.media_url); if (u && el.isConnected) { el.dataset.ok = 1; el.innerHTML = `<img src="${esc(u)}" alt="" referrerpolicy="no-referrer" loading="lazy">`; el.title = (m.caption || '').slice(0, 90); } });
+  });
+}
+const captionOf = (chId, mediaId) => (S.media[chId]?.[mediaId]?.caption || '').replace(/\s+/g, ' ').slice(0, 60);
+const healthDot = (b) => `<i class="dot ${b.errors24h ? 'warn' : ''}" title="${b.errors24h ? T('There were errors in the last 24 h') : T('All good')}"></i>`;
+
+function brandCard(b, i) {
+  const grads = ['var(--g-amber)', 'var(--g-violet)', 'var(--g-blue)', 'var(--g-rose)'], cols = ['#f6b73f', '#9a76f5', '#5ab4f6', '#ee6f8c'];
+  return `<div class="bcard rise" style="--i:${i + 1}"><div class="bhead" style="background:${grads[i % 4]}"><span class="bavatar">${esc(b.name[0].toUpperCase())}</span><b translate="no">${esc(b.name)}</b>${healthDot(b)}</div>
+    <div class="bbody"><div class="bnum"><b>${num(b.dms)}</b><span>${T`DMs in ${periodo()}`}</span></div>
+    <div class="bspark">${sparkline(b.spark, cols[i % 4])}</div>
+    <div class="bmid"><div class="bring">${donut([{ v: b.deliveredPct ?? 0, color: '#4fd08a' }, { v: 100 - (b.deliveredPct ?? 0), color: 'rgba(255,255,255,.08)' }], b.deliveredPct == null ? '—' : b.deliveredPct + '%', 84)}<small>${T('delivered')}</small></div>
+      <div class="breel">${b.topReel ? thumbHtml(b.topReel.channel_id, b.topReel.media_id) : '<div class="bthumb"></div>'}<small>${T('Top reel')}</small></div></div>
+    <div class="bfoot"><span>✉ ${num(b.emails)} ${T('emails')}</span><span>⚡ ${b.automations} ${T('active')}</span>${b.followers != null ? `<span>👥 ${num(b.followers)}${b.followersDelta ? ` <em class="${b.followersDelta > 0 ? 'up' : 'down'}">${b.followersDelta > 0 ? '+' : ''}${b.followersDelta}</em>` : ''}</span>` : ''}</div></div></div>`;
+}
+
+const reelCard = (r, i) => `<div class="rcard rise" style="--i:${i + 2}">${thumbHtml(r.channel_id, r.media_id, 'rcthumb')}<div class="rcbody"><div class="rcn"><i class="dot"></i><b>${num(r.dms)}</b> DMs</div><div class="rcs">${num(r.emails)} Emails${r.likes != null ? ` · ${num(r.likes)} likes` : ''}</div>${r.views != null ? `<div class="rcs">${num(r.views)} ${T('views')}${r.saved != null ? ` · ${num(r.saved)} ${T('saves')}` : ''}</div>` : ''}${r.keyword ? `<span class="kwchip" translate="no">#${esc(r.keyword)}</span>` : ''}<div class="rcsp">${sparkline(r.spark, '#9a76f5', 90, 28)}</div></div></div>`;
+
+// Paints the main content. In "quiet" mode (automatic refresh) it does not wipe the page: it compares with what is already shown and only
+// changes the parts that differ, without replaying the entry animations. That is why it does not flicker.
+const stripRise = (h) => h.replace(/ rise(?=["\s])/g, '');
+function morphKids(o, n) {
+  const a = [...o.childNodes], b = [...n.childNodes];
+  for (let i = 0; i < b.length; i++) {
+    const x = a[i], y = b[i];
+    if (!x) { o.appendChild(y); continue; }
+    if (x.nodeType !== y.nodeType || x.nodeName !== y.nodeName) { o.replaceChild(y, x); continue; }
+    if (x.nodeType === 3) { if (x.nodeValue !== y.nodeValue) x.nodeValue = y.nodeValue; continue; }
+    if (x.nodeType !== 1) continue;
+    for (const at of [...x.attributes]) if (!y.hasAttribute(at.name) && at.name !== 'data-ok') x.removeAttribute(at.name);
+    for (const at of [...y.attributes]) if (x.getAttribute(at.name) !== at.value) x.setAttribute(at.name, at.value);
+    if (x.hasAttribute('data-th') && x.dataset.ok && x.dataset.m === y.dataset.m) continue; // the cover already loaded: leave it alone
+    morphKids(x, y);
+  }
+  for (let i = a.length - 1; i >= b.length; i--) o.removeChild(a[i]);
+}
+function paint(html, quiet) {
+  const main = $('#main'), h = stripRise(html);
+  if (quiet && S.lastHtml != null) {
+    if (S.lastHtml === h) return false;
+    try {
+      const tpl = document.createElement('template'); tpl.innerHTML = h;
+      if (LANG === 'en') tpl.content.childNodes.forEach(trNode);
+      morphKids(main, tpl.content); S.lastHtml = h; return true;
+    } catch { /* if anything fails, draw the whole page */ }
+  }
+  main.innerHTML = quiet ? h : html; S.lastHtml = h; return true;
+}
+
+async function viewInicio(opts = {}) {
+  const quiet = !!opts.quiet;
+  if (!S.channels.length) return $('#main').innerHTML = header('Home') + noAccount();
+  const q = S.brand === 'all' ? '' : `?brand=${S.brand}`;
+  const scoped = S.channels.filter((c) => inScope(c.brand_id));
+  const [a, st, runs] = await Promise.all([loadAnalytics(), api('/api/stats' + q), api('/api/runs')]);
+  if (quiet && S.tab !== 'inicio') return; // the tab changed while loading
+  if (!quiet) S.lastHtml = null;
+  gid = 0; // stable chart ids between refreshes
+  // Covers come from Instagram and can be slow: draw the page now and repaint once when they arrive.
+  const need = scoped.filter((c) => S.media[c.id] === undefined);
+  if (need.length && !S.inicioMedia) { S.inicioMedia = true; Promise.all(need.map((c) => loadMedia(c.id).catch(() => {}))).then(() => { S.inicioMedia = false; if (S.tab === 'inicio') viewInicio({ quiet: true }); }); }
+  const t = a.totals, f = a.funnel, o = a.outcomes;
+  const who = (n, one, many) => (n === 1 ? one : many);
+  const rangeWord = { today: T('of today'), 7: T('of the week'), 30: T('of the month') }[S.range];
+  const rangeShort = { today: T('today'), 7: T('7 days'), 30: T('30 days') }[S.range];
+
+  // ---- 1) Your reels ----
+  const [top, ...others] = a.reels;
+  const reelsBlock = top ? `<div class="reelsec">
+      <div class="rbig rise" style="--i:1"><div class="rbt">${T('Top reel')} ${rangeWord}</div>
+        <div class="rbm">${thumbHtml(top.channel_id, top.media_id, 'rbthumb')}<div class="rbn"><b>${num(top.dms)}</b><span>DMs</span>${top.keyword ? `<span class="kwchip" translate="no">#${esc(top.keyword)}</span>` : ''}<div class="rbs">${num(top.emails)} Emails${top.likes != null ? ` · ${num(top.likes)} likes` : ''}</div>${top.views != null ? `<div class="rbs">${num(top.views)} ${T('views')} · ${T('reach')} ${num(top.reach)}<br>${num(top.saved)} ${T('saves')} · ${num(top.shares)} ${T('shares')}${top.dmPerView != null ? `<br>${T`${top.dmPerView} DMs per 100 views`}` : ''}</div>` : ''}</div></div>
+        <div class="rbsp">${sparkline(top.spark, '#f6b73f', 220, 44)}</div></div>
+      <div class="rgrid">${others.slice(0, 6).map(reelCard).join('')}</div></div>`
+    : `<div class="card rise"><p class="mute" style="margin:0">${T('No reels with activity in this period yet. When someone comments the keyword of an automation, it shows up here.')}</p></div>`;
+  const kpi = (cls, icon, n, label) => `<div class="kt ${cls}"><span class="kti">${ic(icon)}</span><div><b>${num(n)}</b><small>${label}</small></div></div>`;
+
+  // ---- 2) Trends ----
+  const lg = a.listGrowth, ins = a.insights;
+  const okPct = (o.sent + o.waiting + o.error) ? Math.round((o.sent / (o.sent + o.waiting + o.error)) * 100) : null;
+
+  // ---- 3) Plain language ----
+  const headline = t.comments === 0
+    ? T`No activity ${a.range === 'today' ? T('today') : T('in this period')} yet.`
+    : `${a.range === 'today' ? T('Today') : T`In ${periodo()}`}, ${num(t.comments)} ${t.comments === 1 ? T('person asked for') : T('people asked for')} ${T('a resource')}${t.asked ? ` ${T('and')} ${num(t.emails)} ${t.emails === 1 ? T('person left their email') : T('people left their email')}` : ''}.`;
+  const hrs = Array(24).fill(0); a.heatmap.grid.forEach((row) => row.forEach((n, h) => (hrs[h] += n)));
+  const bk = Array.from({ length: 12 }, (_, i) => hrs[i * 2] + hrs[i * 2 + 1]), bm = Math.max(1, ...bk), ph = a.heatmap.peakHours;
+  const peakLine = ph ? T`People comment most between ${hour12(ph.from)} and ${hour12(ph.to)}` : T('Not enough comments yet to see when people comment');
+  const rate = f[2].rate, tenth = rate == null ? null : Math.round(rate / 10);
+  const waiting = runs.filter((r) => inScope(r.brand_id) && r.capture_status === 'waiting');
+  const withAuto = new Set(S.autos.map((x) => x.media_id).filter(Boolean));
+  const free = [];
+  for (const c of scoped) for (const m of Object.values(S.media[c.id] || {})) if (!withAuto.has(m.id)) free.push([c.id, m]);
+  const up = a.uptime, fo = a.followers;
+  const best = a.reels.filter((r) => r.views >= 50 && r.dmPerView != null).sort((x, y) => y.dmPerView - x.dmPerView)[0];
+  const alerts = [];
+  if (t.errors) alerts.push(t.errors === 1 ? T`1 send error in ${periodo()}` : T`${t.errors} send errors in ${periodo()}`);
+  const np = a.errorsInfo.rateLimitPauses; if (np) alerts.push(np === 1 ? T('Meta paused sending 1 time') : T`Meta paused sending ${np} times`);
+  if (up && up.offCount) alerts.push(T`Program off for ${fmtDur(up.offMinutes * 60)} (${up.pct}% on)`);
+
+  const html = header(T('Your reels'), rangePills()) + `
+  <div class="kpis">${kpi('k-amber', 'send', t.dms, `${T('DMs')} · ${rangeShort}`)}${kpi('k-violet', 'mail', t.emails, `${T('Emails')} · ${rangeShort}`)}${kpi('k-rose', 'clock', o.waiting, T('Waiting for a reply'))}${kpi('k-blue', 'bolt', t.errors, T('Errors'))}</div>
+  ${reelsBlock}
+  <h2 class="sec rise mt">${T('Trends')}</h2>
+  <div class="trend">
+    <div class="card rise" style="--i:1"><h2>${ic('chart')}${T('Last 30 days')}</h2>${areaChart(a.series30, [['dms', '#f6b73f'], ['emails', '#9a76f5']])}
+      <div class="legend"><span><i style="background:#f6b73f"></i>${T('DMs sent')}</span><span><i style="background:#9a76f5"></i>${T('Emails captured')}</span></div></div>
+    <div class="trend4">
+      <div class="card rise" style="--i:2"><h2>${T('When do people comment?')}</h2><div class="heat">${heatmap(a.heatmap.grid)}</div></div>
+      <div class="card rise" style="--i:3"><h2>${T('Send results')}</h2><div class="don">${donut([{ v: o.sent, color: '#4fd08a' }, { v: o.waiting, color: '#f4b13f' }, { v: o.error, color: '#ef5b6b' }], okPct == null ? '—' : okPct + '%', 96)}
+        <div class="dleg"><span><i style="background:#4fd08a"></i>${T('Sent')} <b>${num(o.sent)}</b></span><span><i style="background:#f4b13f"></i>${T('Waiting')} <b>${num(o.waiting)}</b></span><span><i style="background:#ef5b6b"></i>Error <b>${num(o.error)}</b></span></div></div></div>
+      <div class="card rise" style="--i:4"><h2>${T('Email list')}</h2><div class="lgrow"><b class="lgnum">+${num(lg.week)}</b><span class="mute">${T('this week')}</span></div>${sparkline(lg.cumulative.map((x) => x.total), '#9a76f5', 200, 46)}<p class="mute" translate="no" style="margin:6px 0 0">${T`${num(lg.total)} emails in total.`}</p></div>
+      <div class="card rise" style="--i:5"><h2>${T('Reach and views')}</h2>${ins.has ? `<div class="lgrow"><b class="lgnum">${num(ins.views)}</b><span class="mute">${T('views')}</span></div>${ins.series.length > 1 ? sparkline(ins.series.map((x) => x.views ?? 0), '#5ab4f6', 200, 46) : ''}<p class="mute" style="margin:6px 0 0">${num(ins.reach)} ${T('accounts reached')}</p>` : `<p class="mute" style="margin:0">${T('No data yet: read every 30 minutes.')}</p>`}</div>
+    </div>
+  </div>
+  <div class="banner rise mt"><div class="bn-ic">${ic('chat')}</div><div><div class="bn-t" translate="no">${esc(headline)}</div></div></div>
+  <div class="grid g4 mt">
+    <div class="tcard rise" style="--i:1;--acc:#f6b73f"><h3>${T('When do people comment most?')}</h3><div class="hbars">${bk.map((v, i) => `<span class="hb ${v && v === bm ? 'pk' : ''}" style="height:${Math.max(5, (v / bm) * 100)}%" title="${hour12(i * 2)} · ${v}"></span>`).join('')}</div><div class="hbl">${[0, 4, 8, 12, 16, 20].map((h) => `<span>${hour12(h)}</span>`).join('')}</div><p translate="no">${esc(peakLine)}</p></div>
+    <div class="tcard rise" style="--i:2;--acc:#ee6f8c"><h3>${T('How many give their email?')}</h3><div class="don">${donut([{ v: rate ?? 0, color: '#ee6f8c' }, { v: 100 - (rate ?? 0), color: 'rgba(255,255,255,.1)' }], rate == null ? '—' : rate + '%', 96)}<p translate="no" style="margin:0">${esc(tenth == null ? T('No email data yet') : T`${tenth} out of 10 give their email`)}</p></div></div>
+    <div class="tcard rise" style="--i:3;--acc:#5ab4f6"><h3>${T('Followers')}</h3>${fo.latest != null ? `<div class="lgrow"><b class="lgnum">${num(fo.latest)}</b>${fo.delta ? `<span class="${fo.delta > 0 ? 'up' : 'down'}">${fo.delta > 0 ? '+' : ''}${fo.delta} ${T('in 30 days')}</span>` : ''}</div>${fo.series.length > 1 ? sparkline(fo.series.map((x) => x.f), '#5ab4f6', 200, 46) : `<p>${T('The chart appears with more days of data.')}</p>`}` : `<p>${T('No data yet: a daily snapshot is taken.')}</p>`}</div>
+    <div class="tcard rise" style="--i:4;--acc:#9a76f5"><h3>${T('Best converting reel')}</h3>${best ? `<div class="wrow">${thumbHtml(best.channel_id, best.media_id, 'rthumb')}<div><div class="lgnum" style="font-size:28px">${best.dmPerView}</div><div class="mute">${T('DMs per 100 views')}</div></div></div><p>${num(best.views)} ${T('views')} · ${num(best.dms)} DMs</p>` : `<p>${T('No data yet: reels with at least 50 views are needed.')}</p>`}</div>
+  </div>
+  <div class="grid g3 mt">
+    <div class="tcard rise" style="--i:5;--acc:#5ab4f6"><h3>${T('Waiting for their resource')}</h3><div class="wrow">${waiting.slice(0, 5).map((r) => `<span translate="no" title="@${esc(r.username || '')}">${avatar(r.username)}</span>`).join('')}</div><p>${waiting.length ? (waiting.length === 1 ? T('1 person is waiting for their resource') : T`${waiting.length} people are waiting for their resource`) : T('Nobody is waiting')}</p></div>
+    <div class="tcard rise" style="--i:6;--acc:${alerts.length ? '#f4b13f' : '#4fd08a'}"><h3>${alerts.length ? T('Alerts') : T('All good')}</h3>${alerts.length ? `<ul class="alist" translate="no">${alerts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}<p translate="no">${esc(`${st.hour.sent} / ${st.hour.cap} ${T('per hour')}`)}</p></div>
+    <div class="tcard rise" style="--i:7;--acc:#f6b73f"><h3>${free.length} ${free.length === 1 ? T('reel without automation') : T('reels without automation')}</h3><div class="wrow">${free.slice(0, 3).map(([cid, m]) => `<button class="fr2" data-fc="${cid}" data-fm="${esc(m.id)}">${thumbHtml(cid, m.id, 'rthumb')}</button>`).join('')}</div>${free.length ? `<button class="btn pri" id="mkAuto">${T('Create automation')}</button>` : ''}</div>
+  </div>`;
+  if (!paint(html, quiet)) return; // nothing changed: the screen stays still
+  bindRange(viewInicio); fillThumbs();
+  const go = (cid, mid) => { S.pendingMedia = { channel: Number(cid), media: mid }; location.hash = '#/automatizaciones'; };
+  document.querySelectorAll('.fr2').forEach((b) => (b.onclick = () => go(b.dataset.fc, b.dataset.fm)));
+  const mk = document.getElementById('mkAuto'); if (mk && free[0]) mk.onclick = () => go(free[0][0], free[0][1].id);
+}
+function gauge(sent, cap) {
+  const pct = Math.min(100, Math.round(sent / cap * 100));
+  return `<div class="gauge"><svg viewBox="0 0 220 130"><defs><linearGradient id="gg" x1="0" x2="1"><stop offset="0" stop-color="#f6b73f"/><stop offset=".6" stop-color="#ee6f8c"/><stop offset="1" stop-color="#9a76f5"/></linearGradient></defs>
+    <path d="M20 115 A90 90 0 0 1 200 115" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="16" stroke-linecap="round"/>
+    <path d="M20 115 A90 90 0 0 1 200 115" fill="none" stroke="url(#gg)" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="${Math.max(pct, sent ? 2 : 0)} 100"/></svg>
+    <div class="gv">${sent} / ${cap}<small>${T('per hour')}</small></div></div>`;
+}
+
+/* ---------- Analytics ---------- */
+async function viewAnalisis() {
+  if (!S.channels.length) return $('#main').innerHTML = header('Analytics') + noAccount();
+  const a = await loadAnalytics();
+  S.channels.filter((c) => inScope(c.brand_id)).forEach((c) => loadMedia(c.id).then(() => { if (S.tab === 'analisis') fillThumbs(); }));
+  const sp = a.speed, e = a.emails, er = a.errorsInfo, fo = a.followers;
+  const bar = (v, max, color = 'var(--g-amber)') => `<span class="tr"><i style="width:${Math.max(v ? 4 : 0, Math.round((v / Math.max(1, max)) * 100))}%;background:${color}"></i></span>`;
+  const reelRows = a.reels.map((r) => `<tr><td><div class="who">${thumbHtml(r.channel_id, r.media_id, 'rthumb')}<span class="cap" translate="no">${esc(captionOf(r.channel_id, r.media_id) || r.media_id)}</span></div></td>
+      <td><b>${num(r.dms)}</b></td><td>${num(r.emails)}</td><td>${r.likes ?? '—'}</td><td>${r.views == null ? '—' : num(r.views)}</td><td>${r.saved ?? '—'}</td><td>${r.shares ?? '—'}</td><td>${r.commentsTotal ?? '—'}</td>
+      <td><div class="kshare">${r.keywordShare == null ? '—' : `${bar(r.keywordShare, 100, 'var(--g-violet)')}<span>${r.keywordShare}%</span>`}</div></td></tr>`).join('');
+  const withAuto = new Set(S.autos.map((x) => x.media_id).filter(Boolean));
+  const free = [];
+  for (const c of S.channels.filter((c) => inScope(c.brand_id))) for (const m of Object.values(S.media[c.id] || {})) if (!withAuto.has(m.id)) free.push([c.id, m]);
+  const abBlock = a.ab.length ? a.ab.map((t) => {
+    const mx = Math.max(t.A.rate ?? 0, t.B.rate ?? 0, 1);
+    const verdict = t.winner ? T`Version ${t.winner} wins: more people leave their email.` : T('No clear difference yet. At least 30 people per version are needed.');
+    return `<div class="abt"><b translate="no">${esc(t.name)}</b>${['A', 'B'].map((v) => `<div class="bars-row"><span class="nm">${T('Version')} ${v}</span>${bar(t[v].rate ?? 0, mx, v === 'A' ? 'var(--g-amber)' : 'var(--g-violet)')}<span class="pc">${t[v].rate ?? 0}%</span><span class="mute">${t[v].emails}/${t[v].n}</span></div>`).join('')}<p class="mute" translate="no" style="margin:4px 0 0">${esc(verdict)}</p></div>`;
+  }).join('') : `<p class="mute">${T('Turn on "Test two versions" in an automation that asks for the email to compare messages.')}</p>`;
+
+  $('#main').innerHTML = header('Analytics', rangePills()) + `
+  <div class="grid g-2">
+   <div>
+    <div class="card rise" style="--i:1"><h2>${ic('play')}${T('Your reels')}</h2>
+      ${a.reels.length ? `<div style="overflow-x:auto"><table class="tbl rt"><thead><tr><th>Reel</th><th>DMs</th><th>Emails</th><th>Likes</th><th>${T('Views')}</th><th>${T('Saves')}</th><th>${T('Shares')}</th><th>${T('Comments')}</th><th>${T('Used the keyword')}</th></tr></thead><tbody>${reelRows}</tbody></table></div>
+        <p class="mute" style="margin:10px 0 0">${T('"Used the keyword" compares comments with the keyword against all comments on the reel. If it is low, the video may not make the keyword clear.')}</p>` : `<p class="mute">${T('No reels with activity in this period yet.')}</p>`}</div>
+    <div class="card rise mt" style="--i:3"><h2>${T('Reels without automation')}</h2>
+      ${free.length ? `<div class="freegrid">${free.slice(0, 8).map(([cid, m]) => `<button class="fr" data-fc="${cid}" data-fm="${esc(m.id)}" title="${esc((m.caption || '').slice(0, 80))}">${thumbHtml(cid, m.id, 'rthumb big')}<span>${T('Create')}</span></button>`).join('')}</div><p class="mute" style="margin:10px 0 0">${T('Tap one to create an automation for it.')}</p>` : `<p class="mute">${T('All your recent reels have an automation (or are still loading).')}</p>`}</div>
+   </div>
+   <div>
+    <div class="card rise" style="--i:1"><h2>👁 ${T('Account reach and views')}</h2>${a.insights.has ? `<div class="kv"><div><b>${num(a.insights.views)}</b><span>${T`views in ${periodo()}`}</span></div><div><b>${num(a.insights.reach)}</b><span>${T('accounts reached')}</span></div></div>${a.insights.series.length > 1 ? sparkline(a.insights.series.map((x) => x.views ?? 0), '#5ab4f6', 300, 60) : ''}<p class="mute" style="margin:8px 0 0">${T('A snapshot is saved every day; the chart grows over time.')}</p>` : `<p class="mute">${T('No data yet: read every 30 minutes.')}</p>`}</div>
+    <div class="card rise mt" style="--i:2"><h2>${ic('bolt')}${T('Speed')}</h2>
+      <div class="kv"><div><b>${fmtDur(sp.medianLagSec)}</b><span>${T('from comment to DM')}</span></div><div><b>${fmtDur(sp.medianToEmailSec)}</b><span>${T('until they give their email')}</span></div><div><b class="${sp.lateCount ? 'warnc' : ''}">${sp.lateCount}</b><span>${T('handled late (over 5 min)')}</span></div></div>
+      <p class="mute" style="margin:10px 0 0">${sp.lagSamples ? T`Median of ${sp.lagSamples} comments with a recorded time. Older ones have no such data.` : T('No comments with a recorded time yet; it fills in with new ones.')}</p></div>
+    <div class="card rise mt" style="--i:4"><h2>✉ ${T('Emails')}</h2><div class="kv"><div><b>${num(e.total)}</b><span>${T('in total')}</span></div><div><b>+${num(a.listGrowth.week)}</b><span>${T('this week')}</span></div><div><b>${num(e.repeat)}</b><span>${T('ask for several resources')}</span></div></div>
+      ${e.domains.length ? `<div style="margin-top:12px">${e.domains.map((d) => `<div class="bars-row"><span class="nm" translate="no">${esc(d.d)}</span>${bar(d.n, e.domains[0].n, 'var(--g-blue)')}<span class="pc">${d.n}</span></div>`).join('')}</div>` : ''}</div>
+    <div class="card rise mt" style="--i:5"><h2>${T('A/B tests')}</h2>${abBlock}</div>
+    <div class="card rise mt" style="--i:6"><h2>${T('Errors and health')}</h2>
+      <div class="kv"><div><b class="${er.groups.length ? 'warnc' : ''}">${a.totals.errors}</b><span>${T('send errors')}</span></div><div><b>${er.captureFailures}</b><span>${T('resources not sent')}</span></div><div><b>${er.rateLimitPauses}</b><span>${T('pauses by Meta')}</span></div></div>
+      ${er.groups.map((g) => `<div class="mute" translate="no" style="margin-top:8px">• ${esc(g.e)} <b>×${g.n}</b></div>`).join('')}
+      ${a.uptime ? `<div class="kv" style="margin-top:14px"><div><b class="${a.uptime.pct < 99 ? 'warnc' : ''}">${a.uptime.pct}%</b><span>${T('time on')}</span></div><div><b>${a.uptime.offCount}</b><span>${T('times off')}</span></div><div><b>${fmtDur(a.uptime.offMinutes * 60)}</b><span>${T('time off')}</span></div></div>
+        <p class="mute" translate="no" style="margin:8px 0 0">${esc(a.uptime.lastOff ? T`Last time off: ${new Date(a.uptime.lastOff.from).toLocaleString(LANG)} (${fmtDur(a.uptime.lastOff.minutes * 60)}). While off nobody gets a reply; when it comes back it checks the comments that arrived meanwhile.` : T('It has not been off in this period.'))}</p>` : ''}</div>
+    <div class="card rise mt" style="--i:6"><h2>💬 ${T('Wrote back')}</h2>
+      <div class="kv"><div><b>${a.followups.rate == null ? '—' : a.followups.rate + '%'}</b><span>${T('messaged you after the resource')}</span></div><div><b>${num(a.followups.wroteBack)}</b><span>${T('people')}</span></div><div><b>${num(a.followups.delivered)}</b><span>${T('got the resource')}</span></div></div>
+      <p class="mute" style="margin:10px 0 0">${T('These are open conversations: you can reply from Instagram within 24 h. Checked every 30 min; only new sends count.')}</p></div>
+    <div class="card rise mt" style="--i:7"><h2>👥 ${T('Followers')}</h2>
+      ${fo.series.length > 1 ? `<div class="lgrow"><b class="lgnum">${num(fo.latest)}</b><span class="${fo.delta > 0 ? 'up' : fo.delta < 0 ? 'down' : 'mute'}">${fo.delta > 0 ? '+' : ''}${fo.delta} ${T('in 30 days')}</span></div>${sparkline(fo.series.map((x) => x.f), '#5ab4f6', 300, 60)}` : `<p class="mute">${fo.latest != null ? `${num(fo.latest)} ${T('followers. The chart appears once there is more than one day of data.')}` : T('No data yet: a daily snapshot is taken.')}</p>`}</div>
+   </div>
+  </div>`;
+  bindRange(viewAnalisis); fillThumbs();
+  document.querySelectorAll('.fr').forEach((b) => (b.onclick = () => { S.pendingMedia = { channel: Number(b.dataset.fc), media: b.dataset.fm }; location.hash = '#/automatizaciones'; }));
+}
+
+/* ---------- Automations ---------- */
+async function viewAutos() {
+  if (S.pendingMedia) { const p = S.pendingMedia; S.pendingMedia = null; if (S.channels.length) { S.editing = { ...blank(), channel_id: p.channel, media_id: p.media }; return viewEditor(); } } // coming from Analytics: "create an automation for this reel"
+  if (!S.channels.length) return $('#main').innerHTML = header('Automations') + noAccount();
+  const list = S.autos.filter((a) => scopeChannels().some((c) => c.id === a.channel_id));
+  const shown = list.filter((a) => S.filter === 'all' || (S.filter === 'on' ? a.active : !a.active));
+  scopeChannels().forEach((c) => loadMedia(c.id).then(() => { if (S.tab === 'automatizaciones' && !S.editing) paintAutoCards(); }));
+  $('#main').innerHTML = header('Automations', '<button class="btn pri rise" id="newa">' + ic('plus') + 'New</button>') + `
+  <div class="filters rise" style="--i:1">${[['all', 'All'], ['on', 'Active'], ['off', 'Paused']].map(([k, l]) => `<button class="fpill ${S.filter === k ? 'on' : ''}" data-f="${k}">${l}</button>`).join('')}</div>
+  <div class="acards" id="acards"></div>`;
+  $('#newa').onclick = newAuto;
+  document.querySelectorAll('.fpill').forEach((b) => b.onclick = () => { S.filter = b.dataset.f; viewAutos(); });
+  paintAutoCards();
+}
+function paintAutoCards() {
+  const box = $('#acards'); if (!box) return;
+  const list = S.autos.filter((a) => scopeChannels().some((c) => c.id === a.channel_id)).filter((a) => S.filter === 'all' || (S.filter === 'on' ? a.active : !a.active));
+  box.innerHTML = list.map((a, i) => {
+    const t = a.media_id ? thumbOf(a.channel_id, a.media_id) : '';
+    return `<div class="acard c${i % 3} rise" style="--i:${i + 2}" data-id="${a.id}">
+      <div class="thumb">${t ? `<img src="${esc(t)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : ''}<div class="play"><span>${a.media_id ? ic('play') : ic('bolt')}</span></div></div>
+      <div class="info"><h3 translate="no">${esc(a.name)}</h3><div>${a.match_mode === 'any' ? '<span class="chip">any comment</span>' : a.keywords.slice(0, 4).map((k) => `<span class="chip" translate="no">${esc(k)}</span>`).join('')}${a.mode === 'email' ? '<span class="chip" style="background:rgba(244,177,63,.28);border-color:rgba(244,177,63,.5)">✉ asks for email</span>' : ''}${a.source_id ? '<span class="chip" style="background:rgba(88,176,245,.28);border-color:rgba(88,176,245,.5)" title="Created automatically from the pending inbox">⚡ automatic</span>' : ''}${a.alt_ask_text ? '<span class="chip" title="A/B test active" translate="no">A/B</span>' : ''}</div>
+      <div class="mute" style="margin-bottom:8px">${a.media_id ? 'A specific reel' : 'All posts and reels'}</div>
+      <div class="meta"><span>${ic('send')}${a.sent} sent</span>
+        <span style="display:flex;align-items:center;gap:8px">${a.active ? '' : '<span class="mute">Paused</span>'}<button class="tgl ${a.active ? 'on' : ''}" data-t="${a.id}" aria-label="${a.active ? 'Pause' : 'Activate'}" aria-pressed="${!!a.active}"></button></span></div></div></div>`;
+  }).join('') + `<button class="newcard rise" id="newb"><div><div class="plus">${ic('plus')}</div>New automation</div></button>`;
+  box.querySelectorAll('.acard').forEach((el) => el.onclick = (e) => { if (e.target.closest('.tgl')) return; editAuto(Number(el.dataset.id)); });
+  box.querySelectorAll('.tgl').forEach((b) => b.onclick = async (e) => {
+    e.stopPropagation(); const id = Number(b.dataset.t), a = S.autos.find((x) => x.id === id), next = !a.active;
+    try { await api(`/api/automations/${id}`, 'PATCH', { active: next }); a.active = next ? 1 : 0; toast(next ? 'Automation activated: it only replies to new comments' : 'Automation paused'); paintAutoCards(); }
+    catch (err) { toast(err.message, 'bad'); }
+  });
+  $('#newb').onclick = newAuto;
+}
+
+/* ---------- Editor ---------- */
+const DEFAULT_ASK = 'Hi {{username}}! 👋 To send you the resource, reply to this message with your email.\n\nBy sending it you agree to receive the resource and occasional emails.';
+const DEFAULT_RETRY = 'Hmm, that does not look like an email 🤔 Please write it like name@example.com';
+const blank = () => ({ id: null, mode: 'link', ask_text: '', retry_text: '', skip_known: 1, alt_ask_text: '', utm: 0, name: '', channel_id: scopeChannels()[0]?.id ?? S.channels[0]?.id, media_id: '', match_mode: 'contains', keywords: [], exclude: [], public_replies: ['¡Te lo mandé al DM! 📩', '¡Ya te lo mandé por DM! 📩', '¡Revisa tu DM, ahí te lo mandé! 📩'], dm_text: 'Hola {{username}}, aquí tienes lo que pediste 👇', button_title: '', button_url: '', tag: '', delay_seconds: 3, active: 1 });
+function newAuto() { if (!S.channels.length) return toast('Connect an account first', 'bad'); S.editing = blank(); viewEditor(); }
+function editAuto(id) { S.editing = structuredClone(S.autos.find((a) => a.id === id)); viewEditor(); }
+async function viewEditor() {
+  const a = S.editing, chans = scopeChannels().length ? scopeChannels() : S.channels;
+  $('#main').innerHTML = header(a.id ? 'Edit automation' : 'New automation') + `
+  <div class="editor">
+    <div class="card rise" style="--i:1">
+      <div class="step"><label class="f" for="f_name">Name (for you)</label><input type="text" id="f_name" value="${esc(a.name)}" placeholder="E.g. Free guide link"></div>
+      <div class="step"><div class="lbl"><span class="n">1</span>Reel</div>
+        ${chans.length > 1 ? `<label class="f" for="f_ch">Account</label><select id="f_ch">${chans.map((c) => `<option value="${c.id}" translate="no" ${c.id === a.channel_id ? 'selected' : ''}>${esc(chLabel(c.id))}</option>`).join('')}</select><div style="height:10px"></div>` : ''}
+        <select id="f_scope"><option value="one" ${a.media_id ? 'selected' : ''}>One specific reel or post</option><option value="all" ${a.media_id ? '' : 'selected'}>All posts and reels</option></select>
+        <div class="reels" id="reels"></div></div>
+      <div class="step"><div class="lbl"><span class="n">2</span>Keyword</div>
+        <div class="chips" id="chips"></div><div class="mute" style="margin-top:6px">Type and press Enter. Capitalization and accents don\'t matter.</div></div>
+      <div class="step"><div class="lbl"><span class="n">3</span>What is sent by DM</div>
+        <div class="seg" id="seg" role="tablist"><button type="button" data-m="link" role="tab">Send the link directly</button><button type="button" data-m="email" role="tab">Ask for email first</button></div>
+        <div id="askBox" style="margin-top:14px"><label class="f" for="f_ask">First DM: asks for the email</label><textarea id="f_ask" rows="4">${esc(a.ask_text || T(DEFAULT_ASK))}</textarea>
+          <div class="mute" style="margin:6px 0 14px">The person replies with their email and then receives the resource. The last sentence explains what you will do with their email; you can change it.</div>
+          <label style="display:flex;gap:10px;align-items:center;cursor:pointer"><input type="checkbox" id="f_ab" ${a.alt_ask_text ? 'checked' : ''} style="width:auto"> Test two versions of the message that asks for the email</label>
+          <div id="altBox" style="margin:10px 0 14px" ${a.alt_ask_text ? '' : 'hidden'}><label class="f" for="f_alt">Version B (half of the people receive this one)</label><textarea id="f_alt" rows="4">${esc(a.alt_ask_text || '')}</textarea><div class="mute" style="margin-top:6px">In Analytics you\'ll see which one gets more emails.</div></div></div>
+        <label class="f" for="f_dm" id="dmLbl" style="margin-top:12px">DM message</label><textarea id="f_dm" rows="4">${esc(a.dm_text)}</textarea><div class="mute" style="margin-top:6px">You can use <code>{{username}}</code> to insert their @. Max ~1000 characters.</div></div>
+      <div class="step"><div class="lbl"><span class="n">4</span>Link (optional)</div><div class="row2"><div><label class="f" for="f_bu">Link (https://…)</label><input type="url" id="f_bu" value="${esc(a.button_url)}" placeholder="https://"></div><div><label class="f" for="f_bt">Button text</label><input type="text" id="f_bt" value="${esc(a.button_title)}" placeholder="Abrir"></div></div>
+        <div class="mute" style="margin-top:6px">If Meta doesn\'t accept the button in this first message, the link goes inside the text.</div></div>
+      <div class="step"><div class="lbl"><span class="n">5</span>Public reply under the comment</div><textarea id="f_pub" rows="3">${esc(a.public_replies.join('\n'))}</textarea><div class="mute" style="margin-top:6px">One per line; one is picked at random. Leave it empty to not reply publicly.</div></div>
+      <details class="adv"><summary>Advanced options</summary>
+        <div class="row2"><div><label class="f" for="f_mode">When it triggers</label><select id="f_mode">${[['contains', 'The comment contains the word'], ['word', 'Contains the whole word'], ['exact', 'Is exactly the word'], ['any', 'Any comment']].map(([v, l]) => `<option value="${v}" ${a.match_mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div><label class="f" for="f_ex">Don\'t trigger if it contains</label><input type="text" id="f_ex" value="${esc(a.exclude.join(', '))}" placeholder="spam, gratis"></div>
+        <div class="emailAdv" style="grid-column:1/-1"><label class="f" for="f_retry">If what they write is not an email (they are asked once more)</label><input type="text" id="f_retry" value="${esc(a.retry_text || T(DEFAULT_RETRY))}">
+          <label style="display:flex;gap:10px;align-items:center;margin-top:12px;cursor:pointer"><input type="checkbox" id="f_skip" ${a.skip_known === 0 ? '' : 'checked'} style="width:auto"> If I already have their email, send the resource directly without asking again</label></div>
+        <div><label class="f" for="f_tag">Tag for the contact</label><input type="text" id="f_tag" value="${esc(a.tag)}" placeholder="lead-guia"></div>
+        <div><label class="f" for="f_delay">Wait (seconds)</label><input type="number" id="f_delay" min="0" value="${a.delay_seconds}"></div>
+        <div style="grid-column:1/-1"><label style="display:flex;gap:10px;align-items:center;cursor:pointer"><input type="checkbox" id="f_utm" ${a.utm ? 'checked' : ''} style="width:auto"> Add UTM parameters to the links that are sent (to see the traffic in your analytics)</label></div></div></details>
+      <p style="margin:22px 0 0;display:flex;gap:10px;flex-wrap:wrap"><button class="btn pri" id="save">${ic('check')}Save</button><button class="btn sec" id="cancel">Cancel</button>${a.id ? '<button class="btn sec" id="sim">Test without sending</button><button class="btn del" id="del" style="margin-left:auto">Delete</button>' : ''}</p>
+      <div id="simout"></div>
+    </div>
+    <div class="card preview rise" style="--i:2"><h2>${ic('chat')}Preview</h2><div id="phone" translate="no"></div><div class="mute" style="text-align:center;margin-top:12px">This is how the commenter would see it.</div></div>
+  </div>`;
+  bindEditor();
+}
+function bindEditor() {
+  const a = S.editing, g = (id) => $('#' + id);
+  const syncMode = () => { // shows or hides what only applies to email mode, and marks the active button
+    const em = a.mode === 'email';
+    g('askBox').hidden = !em; document.querySelectorAll('.emailAdv').forEach((e) => (e.hidden = !em));
+    g('dmLbl').textContent = em ? 'DM with the resource: sent when the person sends their email' : 'DM message';
+    g('seg').querySelectorAll('button').forEach((b) => { const on = b.dataset.m === a.mode; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  };
+  const readForm = () => { a.alt_ask_text = g('f_ab').checked ? g('f_alt').value : ''; a.utm = g('f_utm').checked ? 1 : 0; a.ask_text = g('f_ask').value; a.retry_text = g('f_retry').value; a.skip_known = g('f_skip').checked ? 1 : 0; a.name = g('f_name').value; a.dm_text = g('f_dm').value; a.button_url = g('f_bu').value.trim(); a.button_title = g('f_bt').value; a.public_replies = g('f_pub').value.split('\n').map((s) => s.trim()).filter(Boolean);
+    a.match_mode = g('f_mode').value; a.exclude = g('f_ex').value.split(',').map((s) => s.trim()).filter(Boolean); a.tag = g('f_tag').value.trim(); a.delay_seconds = g('f_delay').value; if (g('f_ch')) a.channel_id = Number(g('f_ch').value); };
+  const paintChips = () => { g('chips').innerHTML = a.keywords.map((k, i) => `<span class="chip" translate="no">${esc(k)} <b data-x="${i}" role="button" aria-label="Remove ${esc(k)}">×</b></span>`).join('') + '<input type="text" id="kw" placeholder="Add word…" aria-label="Add keyword">';
+    const inp = g('kw'); const add = () => { const v = inp.value.replace(/,/g, '').trim(); if (v && !a.keywords.includes(v)) a.keywords.push(v); inp.value = ''; paintChips(); paintPhone(); g('kw').focus(); };
+    inp.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); } else if (e.key === 'Backspace' && !inp.value && a.keywords.length) { a.keywords.pop(); paintChips(); paintPhone(); g('kw').focus(); } };
+    inp.onblur = () => { if (inp.value.trim()) add(); };
+    g('chips').querySelectorAll('[data-x]').forEach((x) => x.onclick = () => { a.keywords.splice(Number(x.dataset.x), 1); paintChips(); paintPhone(); }); };
+  const paintReels = async () => {
+    const box = g('reels'); if (g('f_scope').value === 'all') { box.innerHTML = '<div class="mute" style="padding:8px 2px">It will reply on any of your latest posts and reels.</div>'; return; }
+    box.innerHTML = '<div class="mute" style="padding:8px 2px">Loading your posts…</div>';
+    const map = await loadMedia(a.channel_id); if (!g('reels')) return;
+    const items = Object.values(map || {});
+    box.innerHTML = items.length ? items.map((m) => `<div class="reel ${m.id === a.media_id ? 'sel' : ''}" data-m="${esc(m.id)}" title="${esc((m.caption || '').slice(0, 90))}" role="button" tabindex="0"><img src="${esc(m.thumbnail_url || m.media_url || '')}" alt="" referrerpolicy="no-referrer"><span class="ck">${ic('check')}</span></div>`).join('') : '<div class="mute" style="padding:8px 2px">Could not load posts (demo account or offline).</div>';
+    box.querySelectorAll('.reel').forEach((r) => { const pick = () => { a.media_id = r.dataset.m; paintReels(); paintPhone(); }; r.onclick = pick; r.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } }; });
+  };
+  const paintPhone = () => {
+    readForm(); const ch = S.channels.find((c) => c.id === a.channel_id), me = ch?.username || 'tu_cuenta', kw = a.keywords[0] ? a.keywords[0][0].toUpperCase() + a.keywords[0].slice(1) : 'Quiero el link';
+    const t = a.media_id ? thumbOf(a.channel_id, a.media_id) : '', dm = a.dm_text.replace(/\{\{\s*username\s*\}\}/g, T('user')).replace(/\{\{\s*first_name\s*\}\}/g, T('user')), pub = (a.public_replies[0] || '').replace(/\{\{\s*username\s*\}\}/g, T('user'));
+    const ask = (a.ask_text || '').replace(/\{\{\s*(username|first_name)\s*\}\}/g, T('user'));
+    let host = ''; try { host = new URL(a.button_url).host; } catch {}
+    g('phone').innerHTML = `<div class="phone"><div class="screen"><div class="ig-top"><span>Instagram</span><span style="font-weight:600;font-size:13px;color:#8a8a8f">${T('Comments')}</span></div>
+      <div class="ig-post" style="${t ? `background-image:url('${esc(t)}')` : ''}"></div>
+      <div class="ig-c"><span class="a" style="background:var(--g-rose)">US</span><div><b>${T('user')}</b> ${esc(kw)}<small>2 h · ${T('Reply')}</small></div></div>
+      ${pub ? `<div class="ig-c r"><span class="a" style="background:var(--g-violet)">${esc(initials(me))}</span><div><b>${esc(me)}</b> ${esc(pub)}<small>2 h · ${T('Reply')}</small></div></div>` : '<div style="background:#fff;height:12px"></div>'}
+      <div class="dm"><div class="hd"><span class="av" style="background:var(--g-violet);width:34px;height:34px">${esc(initials(me))}</span><div>${esc(me)}<small>${T('Active now')}</small></div></div>
+        ${a.mode === 'email' ? `<div class="bubble">${esc(ask) || '…'}</div><div class="bubble me">${T('youremail@example.com')}</div>` : ''}
+        <div class="bubble">${esc(dm) || '…'}</div>${host ? `<div class="linkcard">${esc(a.button_title || 'Abrir')}<small>${esc(host)}</small></div>` : ''}</div></div></div>`;
+  };
+  g('seg').querySelectorAll('button').forEach((b) => b.onclick = () => { readForm(); a.mode = b.dataset.m; if (a.mode === 'email' && !g('f_ask').value.trim()) g('f_ask').value = T(DEFAULT_ASK); syncMode(); paintPhone(); });
+  g('f_skip').onchange = paintPhone;
+  g('f_ab').onchange = () => { g('altBox').hidden = !g('f_ab').checked; };
+  g('f_scope').onchange = () => { if (g('f_scope').value === 'all') a.media_id = ''; paintReels(); paintPhone(); };
+  if (g('f_ch')) g('f_ch').onchange = () => { a.channel_id = Number(g('f_ch').value); a.media_id = ''; paintReels(); paintPhone(); };
+  ['f_name', 'f_dm', 'f_bu', 'f_bt', 'f_pub', 'f_ask', 'f_retry'].forEach((id) => g(id).addEventListener('input', paintPhone));
+  g('cancel').onclick = () => { S.editing = null; render(); };
+  g('save').onclick = async () => {
+    readForm(); const b = { ...a, media_id: g('f_scope').value === 'one' ? a.media_id : '' };
+    if (g('f_scope').value === 'one' && !b.media_id) return toast('Pick a reel, or switch to "All posts and reels"', 'bad');
+    if (b.match_mode !== 'any' && !b.keywords.length) return toast('Add at least one keyword', 'bad');
+    if (b.mode === 'email' && !String(b.ask_text || '').trim()) return toast('Write the first DM that asks for the email', 'bad');
+    if (!b.dm_text.trim()) return toast('Write the message with the resource', 'bad');
+    if (!b.name) b.name = (b.keywords[0] ? `Palabra "${b.keywords[0]}"` : 'Automation') + (b.media_id ? '' : ' · todos');
+    try { await api(b.id ? `/api/automations/${b.id}` : '/api/automations', b.id ? 'PUT' : 'POST', b); toast('Saved'); S.editing = null; await loadBase(); render(); }
+    catch (e) { toast(e.message, 'bad'); }
+  };
+  if (a.id) {
+    g('del').onclick = async () => { if (await confirmBox('Delete this automation?', 'Its run history is deleted too. This cannot be undone.')) { await api(`/api/automations/${a.id}`, 'DELETE'); toast('Deleted'); S.editing = null; await loadBase(); render(); } };
+    g('sim').onclick = async () => { readForm(); try { const r = await api('/api/simulate', 'POST', { channel_id: a.channel_id, text: a.keywords[0] || 'hola', media_id: a.media_id || undefined });
+      g('simout').innerHTML = `<div class="simout">${r.matched.length ? '<span>It triggered with a test comment</span> ("<span translate="no">' + esc(a.keywords[0] || 'hola') + '</span>"). <span>This is what would be sent:</span>\n\n' + r.actions.map((x) => `• <span>${x.action === 'public_reply' ? 'Public reply' : 'DM'}</span>: <span translate="no">${esc(x.text)}</span>${x.button ? ` [<span>button</span> <span translate="no">${esc(x.button.title)} → ${esc(x.button.url)}</span>]` : ''}`).join('\n') + '\n\n<span>Nothing was sent to Instagram. The test uses what is already saved.</span>' : '<span>It did not trigger with that test comment. Save your changes and test again.</span>'}</div>`; } catch (e) { toast(e.message, 'bad'); } };
+  }
+  syncMode(); paintChips(); paintReels(); paintPhone();
+}
+
+/* ---------- Activity / Contacts ---------- */
+async function viewActividad(opts = {}) {
+  const quiet = !!opts.quiet;
+  if (!S.channels.length) return $('#main').innerHTML = header('Activity') + noAccount();
+  const [runs, ev] = await Promise.all([api('/api/runs'), api('/api/events')]);
+  const rs = runs.filter((r) => inScope(r.brand_id)); const f = S.afilter || 'all';
+  const waiting = (r) => r.status === 'pending' || r.capture_status === 'waiting' || r.capture_status === 'got_email';
+  const shown = rs.filter((r) => f === 'all' || (f === 'ok' ? r.status === 'done' && !waiting(r) : f === 'bad' ? r.status === 'error' || r.capture_status === 'failed' : waiting(r)));
+  if (quiet && S.tab !== 'actividad') return;
+  const html = header('Activity') + `
+  <div class="filters rise">${[['all', 'All'], ['ok', 'Sent'], ['wait', 'Waiting'], ['bad', 'Errors']].map(([k, l]) => `<button class="fpill ${f === k ? 'on' : ''}" data-f="${k}">${l}</button>`).join('')}</div>
+  <div class="grid g-2">
+    <div class="card rise" style="--i:1"><h2>${ic('send')}Replies</h2>${shown.length ? `<table class="tbl"><thead><tr><th>User</th><th class="hide-s">Comment</th><th class="hide-s">Automation</th><th class="hide-s">When</th><th>Status</th></tr></thead><tbody>
+      ${shown.map((r) => `<tr><td><div class="who" translate="no">${avatar(r.username)}@${esc(r.username || '—')}</div></td><td class="hide-s" translate="no">${esc(r.comment_text)}</td><td class="hide-s" translate="no">${esc(r.automation)}</td><td class="hide-s mute">${esc(ago(r.created_at))}</td><td>${stChip(r)}${r.status === 'error' ? `<div class="mute" style="margin-top:4px;max-width:260px" translate="no">${esc(r.error)}</div>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p class="mute">Nothing here yet.</p>'}</div>
+    <div class="card rise" style="--i:2"><h2>Log</h2>${ev.slice(0, 14).map((e) => `<div style="display:flex;gap:10px;margin:0 0 12px"><i class="dot ${e.kind === 'error' ? 'bad' : e.kind === 'warn' ? 'warn' : ''}" style="margin-top:6px"></i><div><div style="font-size:13.5px" translate="no">${esc(trEvent(e.note))}</div><div class="mute">${esc(ago(e.ts))}</div></div></div>`).join('') || '<p class="mute">No events.</p>'}</div>
+  </div>`;
+  if (!paint(html, quiet)) return;
+  document.querySelectorAll('.fpill').forEach((b) => b.onclick = () => { S.afilter = b.dataset.f; viewActividad(); });
+}
+async function viewContactos() {
+  const cs = (await api('/api/contacts')).filter((c) => inScope(c.brand_id));
+  const nEmails = cs.filter((c) => c.email).length;
+  const csv = '/api/export/emails.csv' + (S.brand === 'all' ? '' : `?brand=${S.brand}`);
+  $('#main').innerHTML = header('Contacts', `<a class="btn pri rise" href="${csv}" download title="Download the captured emails as a CSV file (Excel or Google Sheets)">${ic('send')}Export emails (${nEmails})</a>`) + `<div class="card rise"><h2>${ic('users')}${cs.length} contact${cs.length === 1 ? '' : 's'}</h2>${cs.length ? `<table class="tbl"><thead><tr><th>User</th><th>Email</th><th class="hide-s">Tags</th><th class="hide-s">First seen</th><th class="hide-s">Last</th></tr></thead><tbody>
+    ${cs.map((c) => `<tr><td><div class="who" translate="no">${avatar(c.username)}@${esc(c.username || c.external_id)}</div></td><td>${c.email ? esc(c.email) : '<span class="mute">—</span>'}</td><td class="hide-s">${c.tags.map((t) => `<span class="chip" translate="no">${esc(t)}</span>`).join('') || '<span class="mute">—</span>'}</td><td class="hide-s mute">${esc(ago(c.first_seen))}</td><td class="hide-s mute">${esc(ago(c.last_interaction))}</td></tr>`).join('')}</tbody></table>` : '<p class="mute">People who receive your messages appear here, with their tags and email if they gave one.</p>'}</div>`;
+}
+
+/* ---------- Meta connection ---------- */
+async function viewConexion() {
+  const cfg = await api('/api/config');
+  $('#main').innerHTML = header('Meta connection') + `
+  <div class="grid g-2">
+   <div>
+    <div class="card rise" style="--i:1"><h2>${ic('tag')}Brands</h2>
+      ${S.brands.map((b) => `<div class="bars-row" style="margin:10px 0"><span class="bavatar" style="background:var(--g-violet)">${esc(b.name[0].toUpperCase())}</span><span style="flex:1"><span translate="no">${esc(b.name)}</span><span class="mute"> · ${S.channels.filter((c) => c.brand_id === b.id).map((c) => '@' + esc(c.username)).join(', ') || 'sin cuentas'}</span></span><button class="btn del sm" data-db="${b.id}">Delete</button></div>`).join('') || '<p class="mute">Create your first brand.</p>'}
+      <div class="row2" style="margin-top:14px;grid-template-columns:1fr auto"><input type="text" id="bn" placeholder="Brand name (e.g. Acme)" aria-label="Brand name"><button class="btn sec" id="addb">${ic('plus')}Add</button></div></div>
+    <div class="card rise mt" style="--i:2"><h2>${ic('meta')}Instagram accounts</h2>
+      ${S.channels.map((c) => `<div class="bars-row" style="margin:10px 0">${avatar(c.username)}<span style="flex:1">@${esc(c.username)}<span class="mute"> · <span translate="no">${esc(brandOf(c.id)?.name || '')}</span> · token ${c.token ? `<span translate="no">${esc(c.token)}</span>` : 'none'}</span></span><button class="btn del sm" data-dc="${c.id}">Remove</button></div>`).join('') || '<p class="mute">No accounts yet.</p>'}
+      <details class="adv" style="margin-top:14px" ${S.channels.length ? '' : 'open'}><summary>Connect an account</summary>
+        <p class="mute">Professional Instagram account. Paste the ID and the system user token here (see GUIA-META.md). The token is stored only on this computer.</p>
+        <label class="f" for="cb">Brand</label><select id="cb">${S.brands.map((b) => `<option value="${b.id}" translate="no">${esc(b.name)}</option>`).join('')}</select>
+        <label class="f" for="ci" style="margin-top:12px">Instagram account ID (numbers only)</label><input type="text" id="ci" inputmode="numeric" placeholder="1784…">
+        <label class="f" for="ct" style="margin-top:12px">Access token</label><textarea id="ct" rows="3" placeholder="EAA…" autocomplete="off"></textarea>
+        <p style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn pri" id="conn">Connect</button><button class="btn sec" id="demo">Create demo account</button></p></details></div>
+   </div>
+   <div>
+    <div class="card rise mt" style="--i:3"><h2>How it works today</h2><p style="margin-top:0">The program <b>reads your reels' comments every ${S.poller?.intervalSec || 60} seconds</b> and replies to the new ones. It needs no tunnel and uses no AI.</p><p class="mute">Meta only delivers instant notifications (webhooks) to published apps with advanced access. These details stay here in case you ever need them.</p>
+      <details class="adv"><summary>Webhook (optional, not used today)</summary><label class="f">Verify token</label><input type="text" readonly value="${esc(cfg.verify_token)}"><p class="mute">App Secret: ${cfg.app_secret_set ? 'set in .env' : 'not set'}</p></details></div>
+   </div>
+  </div>`;
+  const reload = async () => { await loadBase(); render(); };
+  $('#addb').onclick = async () => { const n = $('#bn').value.trim(); if (!n) return; try { await api('/api/brands', 'POST', { name: n }); toast('Brand created'); reload(); } catch (e) { toast(e.message, 'bad'); } };
+  document.querySelectorAll('[data-db]').forEach((b) => b.onclick = async () => { if (await confirmBox('Delete the brand?', 'Its accounts, automations and contacts are deleted too.')) { await api('/api/brands/' + b.dataset.db, 'DELETE'); reload(); } });
+  document.querySelectorAll('[data-dc]').forEach((b) => b.onclick = async () => { if (await confirmBox('Remove this account?', 'Its automations are deleted too.', 'Remove')) { await api('/api/channels/' + b.dataset.dc, 'DELETE'); reload(); } });
+  $('#conn').onclick = async () => { if (!S.brands.length) return toast('Create a brand first', 'bad'); try { const r = await api('/api/channels', 'POST', { brand_id: $('#cb').value, token: $('#ct').value, ig_user_id: $('#ci').value }); toast(`Connected @${r.username}`); reload(); } catch (e) { toast(e.message, 'bad'); } };
+  $('#demo').onclick = async () => { if (!S.brands.length) return toast('Create a brand first', 'bad'); await api('/api/channels', 'POST', { brand_id: $('#cb').value, demo: true }); reload(); };
+}
+
+/* ---------- Settings ---------- */
+function viewAjustes() {
+  const row = (title, desc, link) => `<div class="bars-row" style="align-items:flex-start;margin:14px 0"><span style="flex:1"><b>${title}</b><div class="mute">${desc}</div></span>${link ? `<a class="btn sec sm" href="${link}">Open section</a>` : ''}</div>`;
+  $('#main').innerHTML = header('Settings') + `
+  <div class="grid g-2">
+    <div class="card rise" style="--i:1"><h2>${ic('gear')}General</h2>
+      <label class="f">Interface language</label>
+      <div class="seg" id="langseg" role="tablist">${(S.langs || [{ code: 'en', name: 'English' }]).map((l) => `<button type="button" data-l="${esc(l.code)}" class="${LANG === l.code ? 'on' : ''}" translate="no">${esc(l.name)}</button>`).join('')}</div>
+      <p class="mute" style="margin-top:14px">Only changes the language of the panel\'s menus, buttons and texts. It does not change your messages, replies or automations. It is remembered in this browser.</p></div>
+    <div class="card rise" style="--i:2"><h2>Where each setting lives</h2>
+      ${row('Brands and Instagram accounts', 'Connect accounts, create and delete brands.', '#/conexion')}
+      ${row('Messages and replies', 'They are edited inside each automation.', '#/automatizaciones')}
+      ${row('Limits and reading intervals', 'They are changed in the .env file, then the program is restarted (HOURLY_CAP, POLL_SECONDS, DM_POLL_SECONDS).', '')}
+      ${row('Panel password and App Secret', 'They live in the .env file. For security they are not edited from the web.', '')}
+    </div>
+  </div>`;
+  document.querySelectorAll('#langseg button').forEach((b) => (b.onclick = () => setLang(b.dataset.l)));
+}
+
+/* ---------- navigation ---------- */
+const VIEWS = { inicio: viewInicio, automatizaciones: viewAutos, actividad: viewActividad, analisis: viewAnalisis, contactos: viewContactos, conexion: viewConexion, ajustes: viewAjustes };
+async function render() {
+  const t = (location.hash.replace('#/', '') || 'inicio'); S.tab = VIEWS[t] ? t : 'inicio';
+  if (S.tab !== 'automatizaciones') S.editing = null;
+  chrome(); S.lastHtml = null;
+  try { if (S.editing) await viewEditor(); else await VIEWS[S.tab](); }
+  catch (e) { $('#main').innerHTML = header('Error') + `<div class="card"><div class="big" style="font-weight:800;font-size:18px">Something went wrong</div><p class="mute">${esc(e.message)}</p></div>`; }
+}
+window.addEventListener('hashchange', () => { S.editing = null; render(); });
+// Soft refresh every 20 s on Home and Activity (does not touch the editor or forms)
+setInterval(async () => { if (document.hidden || S.editing || !['inicio', 'actividad'].includes(S.tab)) return; try { S.poller = await api('/api/poller'); chrome(); await VIEWS[S.tab]({ quiet: true }); } catch {} }, 20000);
+(async () => { try { S.langs = await api('/api/langs').catch(() => null); await loadLang(LANG); await loadBase(); } catch (e) { toast(e.message, 'bad'); } render(); })();
+</script>
+</body>
+</html>

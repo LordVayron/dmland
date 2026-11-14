@@ -1,0 +1,16 @@
+# Secrets and local state: never commit these
+.env
+.env.*
+!.env.example
+data/
+*.db
+*.db-shm
+*.db-wal
+
+
+# Tooling and OS noise
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+.claude/
