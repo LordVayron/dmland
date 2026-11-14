@@ -98,6 +98,7 @@ Everything is stored in `data/app.db` on your machine. DMLand talks only to the 
 ## Documentation
 
 - [Connect to Instagram (Meta setup)](docs/META-SETUP.md)
+- [Posts and automations: how DMLand finds your posts](docs/POSTS-AND-AUTOMATIONS.md)
 - [How it works, limits and project layout](docs/HOW-IT-WORKS.md)
 - [Languages](docs/LANGUAGES.md)
 - [AI agent install guide](AGENTS.md)

@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--ink:#f6f1ea;--ink2:#c9bfb4;--ink3:#8f857b;--amber:linear-gradient(135deg,#f6b73f,#f0693a);--violet:linear-gradient(135deg,#9a76f5,#6a3fd4);--rose:linear-gradient(135deg,#ee6f8c,#d63f8a);--blue:linear-gradient(135deg,#4f9bff,#6a6cf0);--glass:rgba(255,255,255,.07);--line:rgba(255,255,255,.16)}
+html,body{width:1280px;height:520px;overflow:hidden}
+body{font-family:'Manrope',system-ui,sans-serif;color:var(--ink);background:#1b1319;position:relative}
+.bg{position:absolute;inset:0;background:radial-gradient(900px 520px at 6% -5%,#7d4b3b 0%,transparent 62%),radial-gradient(760px 520px at 102% -8%,#e3a23c 0%,transparent 56%),radial-gradient(900px 640px at 104% 104%,#6a3fd4 0%,transparent 58%),radial-gradient(600px 400px at -4% 110%,#a23a6a 0%,transparent 60%),#1b1319}
+.wrap{position:absolute;inset:0;padding:48px 56px;display:flex;flex-direction:column}
+h1{font-size:40px;font-weight:800;letter-spacing:-1px}
+.grad{background:linear-gradient(100deg,#f6b73f,#ee6f8c 55%,#9a76f5);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{margin-top:8px;font-size:18px;color:var(--ink2);font-weight:500}
+.row{display:flex;gap:18px;margin-top:34px;align-items:stretch}
+.card{flex:1;background:var(--glass);border:1px solid var(--line);border-radius:24px;padding:24px 22px;box-shadow:0 24px 60px rgba(0,0,0,.35);position:relative;display:flex;flex-direction:column;gap:10px}
+.num{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:18px;color:#1b1319}
+.a{background:var(--amber)}.v{background:var(--violet)}.r{background:var(--rose)}.b{background:var(--blue)}
+.card h2{font-size:21px;font-weight:800;letter-spacing:-.3px;margin-top:6px}
+.card p{font-size:15px;color:var(--ink2);line-height:1.45;font-weight:500}
+.mini{margin-top:auto;border-radius:14px;background:rgba(0,0,0,.28);border:1px solid var(--line);padding:11px 13px;font-size:13.5px;font-weight:600;color:var(--ink)}
+.mini small{display:block;color:var(--ink3);font-weight:600;font-size:12px;margin-bottom:3px}
+.arrow{align-self:center;color:var(--ink3);font-size:26px;font-weight:700;margin:0 -6px}
+.foot{margin-top:26px;display:flex;gap:12px;flex-wrap:wrap}
+.chip{padding:9px 16px;border-radius:99px;background:var(--glass);border:1px solid var(--line);font-weight:700;font-size:14px;color:var(--ink2)}
+.chip b{color:var(--ink)}
+.wm{position:absolute;right:56px;top:50px;display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px}
+</style></head><body><div class="bg"></div>
+<div class="wrap">
+<div class="wm"><svg width="30" height="30" viewBox="0 0 40 40"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6b73f"/><stop offset=".55" stop-color="#e0587a"/><stop offset="1" stop-color="#7b5ad6"/></linearGradient></defs><path d="M20 3C10.6 3 3 9.9 3 18.4c0 4.6 2.2 8.7 5.7 11.5L7.6 37l6.8-3.4c1.8.5 3.6.8 5.6.8 9.4 0 17-6.9 17-15.4S29.4 3 20 3z" fill="url(#lg)"/><circle cx="13" cy="18.5" r="2.3" fill="#fff"/><circle cx="20" cy="18.5" r="2.3" fill="#fff"/><circle cx="27" cy="18.5" r="2.3" fill="#fff"/></svg>DMLand</div>
+<h1>From your post to <span class="grad">their DM</span></h1>
+<div class="sub">No links to paste. DMLand finds your posts by itself.</div>
+<div class="row">
+ <div class="card"><div class="num a">1</div><h2>You publish</h2><p>Post a reel or post on Instagram and ask people to comment a keyword.</p><div class="mini"><small>Your caption</small>Comment GUIDE</div></div>
+ <div class="arrow">›</div>
+ <div class="card"><div class="num v">2</div><h2>DMLand sees it</h2><p>It asks Meta for the latest posts on your connected account, with thumbnails.</p><div class="mini"><small>Picker shows</small>Your 24 newest posts</div></div>
+ <div class="arrow">›</div>
+ <div class="card"><div class="num r">3</div><h2>You pick it</h2><p>Create an automation and choose the post, or apply it to all posts.</p><div class="mini"><small>Scope</small>One post · or latest 5 posts</div></div>
+ <div class="arrow">›</div>
+ <div class="card"><div class="num b">4</div><h2>They get the DM</h2><p>New comments are read about once a minute. A match gets the DM, then a public reply.</p><div class="mini"><small>Result</small>DM first · reply second</div></div>
+</div>
+<div class="foot"><span class="chip"><b>Only new comments</b> after you activate</span><span class="chip"><b>Under 7 days</b> old to get a DM</span><span class="chip"><b>One reply</b> per comment</span><span class="chip"><b>Runs only</b> while DMLand is on</span></div>
+</div></body></html>
