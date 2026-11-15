@@ -1,7 +1,7 @@
 // Periodic comment reading (an alternative to the webhook while Meta does not deliver it).
 // No AI: it only queries the Meta API and reuses the same engine as the webhook.
 import { all, logEvent } from './db.mjs';
-import * as meta from './meta.mjs';
+import { apiFor } from './platform.mjs';
 import { handleComment, realSender, parseMetaTime, parseDbTime, throttle } from './engine.mjs';
 import { pollDMs, captureCounts } from './capture.mjs';
 
@@ -18,7 +18,13 @@ const sleepMs = (ms) => new Promise((r) => setTimeout(r, ms));
 const jitter = () => sleepMs(2000 + Math.random() * 3000);
 
 // deps inyectables para pruebas
-const defaults = { listMedia: meta.listMedia, listComments: meta.listComments, makeSender: realSender, pause: jitter };
+// The last argument of each call is the account's platform ('instagram' | 'facebook').
+const defaults = {
+  listMedia: (host, token, id, type) => apiFor(type).listMedia(host, token, id),
+  listComments: (host, token, mediaId, limit, after, type) => apiFor(type).listComments(host, token, mediaId, limit, after),
+  makeSender: realSender,
+  pause: jitter,
+};
 
 const MAX_PAGES = Number(process.env.MAX_PAGES || 10); // 10 pages x 50 = up to 500 comments per reel per minute
 
@@ -28,7 +34,7 @@ async function fetchComments(d, ch, mediaId, cutoff) {
   const out = [];
   let after = null, truncated = false;
   for (let page = 0; page < MAX_PAGES; page++) {
-    const res = await d.listComments(ch.host, ch.token, mediaId, 50, after);
+    const res = await d.listComments(ch.host, ch.token, mediaId, 50, after, ch.type);
     const data = res.data || [];
     out.push(...data);
     after = res.paging?.next ? res.paging?.cursors?.after : null;
@@ -54,7 +60,7 @@ async function pollChannel(d, ch, now) {
   // Which posts to look at: those with their own automation, plus the latest N if any is "all"
   const mediaIds = new Set(autos.filter((a) => a.media_id).map((a) => a.media_id));
   if (autos.some((a) => !a.media_id)) {
-    const recent = await d.listMedia(ch.host, ch.token, ch.ig_user_id);
+    const recent = await d.listMedia(ch.host, ch.token, ch.ig_user_id, ch.type);
     (recent.data || []).slice(0, RECENT_MEDIA).forEach((m) => mediaIds.add(m.id));
   }
   let launchedTotal = 0;
@@ -77,7 +83,7 @@ async function pollChannel(d, ch, now) {
         ch,
         { id: c.id, text: c.text, timestamp: c.timestamp, username: c.username,
           from: { id: c.from?.id ?? c.username, username: c.from?.username ?? c.username }, media: { id: mediaId } },
-        { sender: d.makeSender(ch.host, ch.token, ch.ig_user_id), quiet: true },
+        { sender: d.makeSender(ch.host, ch.token, ch.ig_user_id, ch.type), quiet: true },
       );
       if (!launched.length) continue;
       launchedTotal += launched.length;

@@ -26,6 +26,8 @@ ensureEnv('WEBHOOK_VERIFY_TOKEN', randomBytes(12).toString('base64url'));
 
 const { db, all, get, run, logEvent } = await import('./db.mjs');
 const meta = await import('./meta.mjs');
+const { apiFor } = await import('./platform.mjs');
+const { commentFromWebhook } = await import('./facebook.mjs');
 const { handleComment, realSender, drySender } = await import('./engine.mjs');
 const poller = await import('./poller.mjs');
 const { automationFields } = await import('./automations.mjs');
@@ -86,25 +88,32 @@ async function api(req, res, url) {
       if (token.length < 100 || !/^[A-Za-z0-9_-]+$/.test(token)) {
         throw new Error(`The pasted token does not look complete (${token.length} characters). A Meta token has more than 150 and starts with EAA. Copy it again with the Copy button.`);
       }
+      // 'instagram' (account ID) or 'facebook' (Page ID). Both use the same Meta app and a token with access to that account.
+      const type = body.platform === 'facebook' ? 'facebook' : 'instagram';
+      const api = apiFor(type);
       let host, me, igId;
-      if (!body.ig_user_id && !body.legacy) throw new Error('The Instagram account ID is missing. Type it in the ID field (the grey text is only an example).');
+      if (!body.ig_user_id && (type === 'facebook' || !body.legacy)) {
+        throw new Error(type === 'facebook'
+          ? 'The Facebook Page ID is missing. Type it in the ID field (the grey text is only an example).'
+          : 'The Instagram account ID is missing. Type it in the ID field (the grey text is only an example).');
+      }
       if (body.ig_user_id) { // Unified Login: system user token + account ID
         host = meta.DEFAULT_HOST;
         igId = String(body.ig_user_id).trim();
-        if (!/^\d+$/.test(igId)) throw new Error('The Instagram account ID must contain numbers only');
-        me = await meta.getAccount(host, token, igId);
+        if (!/^\d+$/.test(igId)) throw new Error(type === 'facebook' ? 'The Facebook Page ID must contain numbers only' : 'The Instagram account ID must contain numbers only');
+        me = await api.getAccount(host, token, igId);
       } else {               // Instagram Login (older apps)
         host = 'graph.instagram.com';
         me = await meta.getMe(host, token);
         igId = String(me.user_id || me.id);
       }
       let sub = 'ok';
-      try { await meta.subscribeWebhooks(host, token, igId); } catch (e) { sub = `could not subscribe to webhooks: ${e.message}`; }
-      run(`INSERT INTO channels(brand_id, ig_user_id, username, token, host) VALUES (?,?,?,?,?)
-           ON CONFLICT(ig_user_id) DO UPDATE SET token=excluded.token, username=excluded.username, brand_id=excluded.brand_id, host=excluded.host, token_saved_at=CURRENT_TIMESTAMP`,
-        Number(body.brand_id), igId, me.username, token, host);
-      logEvent('channel', `Connected @${me.username} (${igId}); webhooks: ${sub}`);
-      return send(res, 200, { ok: true, username: me.username, ig_user_id: igId, webhooks: sub });
+      try { await api.subscribeWebhooks(host, token, igId); } catch (e) { sub = `could not subscribe to webhooks: ${e.message}`; }
+      run(`INSERT INTO channels(brand_id, ig_user_id, username, token, host, type) VALUES (?,?,?,?,?,?)
+           ON CONFLICT(ig_user_id) DO UPDATE SET token=excluded.token, username=excluded.username, brand_id=excluded.brand_id, host=excluded.host, type=excluded.type, token_saved_at=CURRENT_TIMESTAMP`,
+        Number(body.brand_id), igId, me.username, token, host, type);
+      logEvent('channel', `Connected ${type === 'facebook' ? 'Facebook Page ' : ''}@${me.username} (${igId}); webhooks: ${sub}`);
+      return send(res, 200, { ok: true, username: me.username, ig_user_id: igId, platform: type, webhooks: sub });
     }
   }
   if ((mt = p.match(/^\/api\/channels\/(\d+)$/)) && m === 'DELETE') { run('DELETE FROM channels WHERE id=?', mt[1]); return send(res, 200, { ok: true }); }
@@ -114,7 +123,7 @@ async function api(req, res, url) {
     // 2-minute cache: the dashboard asks for thumbnails on every screen and there is no need to bother Meta each time
     const hit = mediaCache.get(c.id);
     if (hit && Date.now() - hit.at < 120000) return send(res, 200, hit.data);
-    const data = (await meta.listMedia(c.host, c.token, c.ig_user_id)).data || [];
+    const data = (await apiFor(c.type).listMedia(c.host, c.token, c.ig_user_id)).data || [];
     mediaCache.set(c.id, { at: Date.now(), data });
     return send(res, 200, data);
   }
@@ -153,12 +162,12 @@ async function api(req, res, url) {
   if (p === '/api/export/emails.csv' && m === 'GET') {
     const b = url.searchParams.get('brand');
     const rows = all(`SELECT json_extract(c.fields,'$.email') AS email, c.username, br.name AS brand, json_extract(c.fields,'$.email_from') AS automation,
-        json_extract(c.fields,'$.email_at') AS captured_at, c.tags FROM contacts c JOIN channels ch ON ch.id=c.channel_id JOIN brands br ON br.id=ch.brand_id
+        json_extract(c.fields,'$.email_at') AS captured_at, c.tags, ch.type AS platform FROM contacts c JOIN channels ch ON ch.id=c.channel_id JOIN brands br ON br.id=ch.brand_id
         WHERE json_extract(c.fields,'$.email') IS NOT NULL ${b ? 'AND br.id=?' : ''} ORDER BY json_extract(c.fields,'$.email_at') DESC`, ...(b ? [Number(b)] : []));
     // A cell starting with = + - @ can run as a formula in Excel: prefix it with a quote
     const cell = (v) => { let s = String(v ?? '').replace(/"/g, '""'); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return `"${s}"`; };
-    const csv = '﻿' + ['email,instagram_user,brand,automation,captured_at,tags']
-      .concat(rows.map((r) => [r.email, r.username ?? '', r.brand, r.automation, r.captured_at, j(r.tags, []).join(' ')].map(cell).join(','))).join('\r\n') + '\r\n';
+    const csv = '﻿' + ['email,instagram_user,brand,automation,captured_at,tags,platform']
+      .concat(rows.map((r) => [r.email, r.username ?? '', r.brand, r.automation, r.captured_at, j(r.tags, []).join(' '), r.platform].map(cell).join(','))).join('\r\n') + '\r\n';
     res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="emails-${new Date().toISOString().slice(0, 10)}.csv"` });
     return res.end(csv);
   }
@@ -232,8 +241,12 @@ function webhook(req, res, url) {
       const channel = get('SELECT * FROM channels WHERE ig_user_id=?', String(entry.id));
       if (!channel) { logEvent('warn', `Event for an unconnected account: ${entry.id}`); continue; }
       for (const ch of entry.changes || []) {
+        const sender = () => realSender(channel.host, channel.token, channel.ig_user_id, channel.type);
         if (ch.field === 'comments' && ch.value && !ch.value.parent_id) {
-          handleComment(channel, ch.value, { sender: realSender(channel.host, channel.token, channel.ig_user_id) });
+          handleComment(channel, ch.value, { sender: sender() });
+        } else if (ch.field === 'feed') { // Facebook Page: new comment on a post
+          const comment = commentFromWebhook(ch.value);
+          if (comment) handleComment(channel, comment, { sender: sender() });
         }
       }
     }

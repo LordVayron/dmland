@@ -1,9 +1,16 @@
 // Daily snapshot of the account (followers) and of each reel (total likes and comments).
 // One snapshot per day per account is updated every time it is taken, so the last value of the day is the one that stays.
 import { all, run, logEvent } from './db.mjs';
-import * as meta from './meta.mjs';
+import { apiFor } from './platform.mjs';
 
-const defaults = { getAccountStats: meta.getAccountStats, listMedia: meta.listMedia, listConversations: meta.listConversations, getMediaInsights: meta.getMediaInsights, getAccountInsights: meta.getAccountInsights };
+// The last argument of each call is the account's platform ('instagram' | 'facebook').
+const defaults = {
+  getAccountStats: (host, token, id, type) => apiFor(type).getAccountStats(host, token, id),
+  listMedia: (host, token, id, type) => apiFor(type).listMedia(host, token, id),
+  listConversations: (host, token, id, limit, type) => apiFor(type).listConversations(host, token, id, limit),
+  getMediaInsights: (host, token, mediaId, type) => apiFor(type).getMediaInsights(host, token, mediaId),
+  getAccountInsights: (host, token, id, type) => apiFor(type).getAccountInsights(host, token, id),
+};
 const INSIGHT_REELS = 12; // only the most recent: old ones barely change, and this protects Meta's limits
 
 // Stores the time of the last message each person wrote to us (to know who wrote back after receiving the resource)
@@ -38,27 +45,27 @@ export async function collectStats(deps = {}) {
   let done = 0;
   for (const ch of channels) {
     try {
-      const acc = await d.getAccountStats(ch.host, ch.token, ch.ig_user_id);
+      const acc = await d.getAccountStats(ch.host, ch.token, ch.ig_user_id, ch.type);
       run(`INSERT INTO account_stats(channel_id, day, followers, media_count) VALUES (?, date('now','localtime'), ?, ?)
            ON CONFLICT(channel_id, day) DO UPDATE SET followers=excluded.followers, media_count=excluded.media_count`,
         ch.id, acc.followers_count ?? null, acc.media_count ?? null);
-      const media = (await d.listMedia(ch.host, ch.token, ch.ig_user_id)).data || [];
+      const media = (await d.listMedia(ch.host, ch.token, ch.ig_user_id, ch.type)).data || [];
       for (const m of media) {
         run(`INSERT INTO media_stats(channel_id, media_id, day, likes, comments) VALUES (?,?,date('now','localtime'),?,?)
              ON CONFLICT(channel_id, media_id, day) DO UPDATE SET likes=excluded.likes, comments=excluded.comments`,
           ch.id, String(m.id), m.like_count ?? null, m.comments_count ?? null);
       }
       try { // insights of the account and recent reels (if the permission is missing, only warn once)
-        const ai = await d.getAccountInsights(ch.host, ch.token, ch.ig_user_id);
+        const ai = await d.getAccountInsights(ch.host, ch.token, ch.ig_user_id, ch.type);
         run(`UPDATE account_stats SET reach=?, views=?, engaged=? WHERE channel_id=? AND day=date('now','localtime')`, ai.reach ?? null, ai.views ?? null, ai.accounts_engaged ?? null, ch.id);
         for (const m of media.slice(0, INSIGHT_REELS)) {
-          const i = await d.getMediaInsights(ch.host, ch.token, m.id);
+          const i = await d.getMediaInsights(ch.host, ch.token, m.id, ch.type);
           run(`UPDATE media_stats SET views=?, reach=?, saved=?, shares=?, interactions=?, watch_ms=? WHERE channel_id=? AND media_id=? AND day=date('now','localtime')`,
             i.views ?? null, i.reach ?? null, i.saved ?? null, i.shares ?? null, i.total_interactions ?? null, i.ig_reels_avg_watch_time ?? null, ch.id, String(m.id));
         }
         lastErr.delete('in' + ch.id);
       } catch (e) { if (lastErr.get('in' + ch.id) !== e.message) logEvent('warn', `Could not read insights of @${ch.username}: ${e.message}`); lastErr.set('in' + ch.id, e.message); }
-      try { saveFollowups(ch, (await d.listConversations(ch.host, ch.token, ch.ig_user_id, 50)).data); }
+      try { saveFollowups(ch, (await d.listConversations(ch.host, ch.token, ch.ig_user_id, 50, ch.type)).data); }
       catch (e) { if (lastErr.get('dm' + ch.id) !== e.message) logEvent('warn', `Could not read DMs of @${ch.username}: ${e.message}`); lastErr.set('dm' + ch.id, e.message); }
       lastErr.delete(ch.id);
       done++;

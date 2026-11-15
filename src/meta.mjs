@@ -4,7 +4,7 @@
 const VERSION = process.env.GRAPH_VERSION || 'v27.0';
 export const DEFAULT_HOST = 'graph.facebook.com';
 
-async function call(host, method, path, token, body) {
+export async function call(host, method, path, token, body) {
   const res = await fetch(`https://${host}/${VERSION}${path}`, {
     method,
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
