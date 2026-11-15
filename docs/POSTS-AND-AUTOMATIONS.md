@@ -8,7 +8,7 @@ You never paste a post link into DMLand. It finds your posts by itself, and you 
 
 ## How the posts get into DMLand
 
-When you connect an Instagram account, DMLand uses your own Meta app and token to ask the Instagram Graph API for that account's recent posts. Meta does not push this information to DMLand. DMLand asks for it, and the answer is the list with thumbnails you see in the editor.
+When you connect an Instagram account or a Facebook Page, DMLand uses your own Meta app and token to ask the Meta Graph API for its recent posts. Meta does not push this information to DMLand. DMLand asks for it, and the answer is the list with thumbnails you see in the editor.
 
 ## Create an automation, step by step
 
@@ -36,6 +36,7 @@ Create the automation soon after you publish. Your newest post is always at the 
 
 - **Posts older than your 24 newest** do not appear in the picker, so you cannot target them one by one.
 - **Carousels**: DMLand does not filter by post type, so comments on carousels should work the same way, but this has not been tested yet.
+- **Facebook Pages**: DMLand lists the Page's 24 most recent published posts and answers top-level comments only (not replies to other comments). The DM arrives in Messenger. Whether reels show up in that list has not been verified yet.
 - **Many posts**: you do not need an automation per post. One automation with **All posts and reels** covers your latest 5 at once.
 
 ## Automating it further
