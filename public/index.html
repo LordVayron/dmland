@@ -438,7 +438,7 @@ const pollPill = () => {
   return '<span class="pill"><i class="dot"></i>Comment reading · on</span>';
 };
 const header = (title, extra = '') => `<div class="top rise"><h1>${esc(title)}</h1>${extra}${pollPill()}<a class="iconbtn" href="#/ajustes" title="Settings" aria-label="Settings">${ic('gear')}</a></div>`;
-const noAccount = () => `<div class="card empty rise"><div class="big">Connect your first Instagram account</div>Without a connected account there is nothing to automate.<br><br><a class="btn pri" href="#/conexion">Go to Meta connection</a></div>`;
+const noAccount = () => `<div class="card empty rise"><div class="big">Connect your first Instagram account or Facebook Page</div>Without a connected account there is nothing to automate.<br><br><a class="btn pri" href="#/conexion">Go to Meta connection</a></div>`;
 
 /* ---------- Home ---------- */
 // All dashboard text goes through T(): it only changes what the panel shows, never your data or messages.
@@ -821,7 +821,7 @@ function bindEditor() {
     const t = a.media_id ? thumbOf(a.channel_id, a.media_id) : '', dm = a.dm_text.replace(/\{\{\s*username\s*\}\}/g, T('user')).replace(/\{\{\s*first_name\s*\}\}/g, T('user')), pub = (a.public_replies[0] || '').replace(/\{\{\s*username\s*\}\}/g, T('user'));
     const ask = (a.ask_text || '').replace(/\{\{\s*(username|first_name)\s*\}\}/g, T('user'));
     let host = ''; try { host = new URL(a.button_url).host; } catch {}
-    g('phone').innerHTML = `<div class="phone"><div class="screen"><div class="ig-top"><span>Instagram</span><span style="font-weight:600;font-size:13px;color:#8a8a8f">${T('Comments')}</span></div>
+    g('phone').innerHTML = `<div class="phone"><div class="screen"><div class="ig-top"><span>${ch?.type === 'facebook' ? 'Facebook' : 'Instagram'}</span><span style="font-weight:600;font-size:13px;color:#8a8a8f">${T('Comments')}</span></div>
       <div class="ig-post" style="${t ? `background-image:url('${esc(t)}')` : ''}"></div>
       <div class="ig-c"><span class="a" style="background:var(--g-rose)">US</span><div><b>${T('user')}</b> ${esc(kw)}<small>2 h · ${T('Reply')}</small></div></div>
       ${pub ? `<div class="ig-c r"><span class="a" style="background:var(--g-violet)">${esc(initials(me))}</span><div><b>${esc(me)}</b> ${esc(pub)}<small>2 h · ${T('Reply')}</small></div></div>` : '<div style="background:#fff;height:12px"></div>'}
@@ -890,12 +890,13 @@ async function viewConexion() {
     <div class="card rise" style="--i:1"><h2>${ic('tag')}Brands</h2>
       ${S.brands.map((b) => `<div class="bars-row" style="margin:10px 0"><span class="bavatar" style="background:var(--g-violet)">${esc(b.name[0].toUpperCase())}</span><span style="flex:1"><span translate="no">${esc(b.name)}</span><span class="mute"> · ${S.channels.filter((c) => c.brand_id === b.id).map((c) => '@' + esc(c.username)).join(', ') || 'sin cuentas'}</span></span><button class="btn del sm" data-db="${b.id}">Delete</button></div>`).join('') || '<p class="mute">Create your first brand.</p>'}
       <div class="row2" style="margin-top:14px;grid-template-columns:1fr auto"><input type="text" id="bn" placeholder="Brand name (e.g. Acme)" aria-label="Brand name"><button class="btn sec" id="addb">${ic('plus')}Add</button></div></div>
-    <div class="card rise mt" style="--i:2"><h2>${ic('meta')}Instagram accounts</h2>
-      ${S.channels.map((c) => `<div class="bars-row" style="margin:10px 0">${avatar(c.username)}<span style="flex:1">@${esc(c.username)}<span class="mute"> · <span translate="no">${esc(brandOf(c.id)?.name || '')}</span> · token ${c.token ? `<span translate="no">${esc(c.token)}</span>` : 'none'}</span></span><button class="btn del sm" data-dc="${c.id}">Remove</button></div>`).join('') || '<p class="mute">No accounts yet.</p>'}
+    <div class="card rise mt" style="--i:2"><h2>${ic('meta')}Accounts</h2>
+      ${S.channels.map((c) => `<div class="bars-row" style="margin:10px 0">${avatar(c.username)}<span style="flex:1">@${esc(c.username)}<span class="mute"> · ${c.type === 'facebook' ? T('Facebook Page') : 'Instagram'} · <span translate="no">${esc(brandOf(c.id)?.name || '')}</span> · token ${c.token ? `<span translate="no">${esc(c.token)}</span>` : 'none'}</span></span><button class="btn del sm" data-dc="${c.id}">Remove</button></div>`).join('') || '<p class="mute">No accounts yet.</p>'}
       <details class="adv" style="margin-top:14px" ${S.channels.length ? '' : 'open'}><summary>Connect an account</summary>
-        <p class="mute">Professional Instagram account. Paste the ID and the system user token here (see GUIA-META.md). The token is stored only on this computer.</p>
-        <label class="f" for="cb">Brand</label><select id="cb">${S.brands.map((b) => `<option value="${b.id}" translate="no">${esc(b.name)}</option>`).join('')}</select>
-        <label class="f" for="ci" style="margin-top:12px">Instagram account ID (numbers only)</label><input type="text" id="ci" inputmode="numeric" placeholder="1784…">
+        <p class="mute">Professional Instagram account or Facebook Page. Paste the ID and the system user token here (see docs/META-SETUP.md). The token is stored only on this computer.</p>
+        <label class="f" for="cp">Platform</label><select id="cp"><option value="instagram">Instagram</option><option value="facebook">Facebook Page</option></select>
+        <label class="f" for="cb" style="margin-top:12px">Brand</label><select id="cb">${S.brands.map((b) => `<option value="${b.id}" translate="no">${esc(b.name)}</option>`).join('')}</select>
+        <label class="f" for="ci" id="cil" style="margin-top:12px">Instagram account ID (numbers only)</label><input type="text" id="ci" inputmode="numeric" placeholder="1784…">
         <label class="f" for="ct" style="margin-top:12px">Access token</label><textarea id="ct" rows="3" placeholder="EAA…" autocomplete="off"></textarea>
         <p style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn pri" id="conn">Connect</button><button class="btn sec" id="demo">Create demo account</button></p></details></div>
    </div>
@@ -908,7 +909,8 @@ async function viewConexion() {
   $('#addb').onclick = async () => { const n = $('#bn').value.trim(); if (!n) return; try { await api('/api/brands', 'POST', { name: n }); toast('Brand created'); reload(); } catch (e) { toast(e.message, 'bad'); } };
   document.querySelectorAll('[data-db]').forEach((b) => b.onclick = async () => { if (await confirmBox('Delete the brand?', 'Its accounts, automations and contacts are deleted too.')) { await api('/api/brands/' + b.dataset.db, 'DELETE'); reload(); } });
   document.querySelectorAll('[data-dc]').forEach((b) => b.onclick = async () => { if (await confirmBox('Remove this account?', 'Its automations are deleted too.', 'Remove')) { await api('/api/channels/' + b.dataset.dc, 'DELETE'); reload(); } });
-  $('#conn').onclick = async () => { if (!S.brands.length) return toast('Create a brand first', 'bad'); try { const r = await api('/api/channels', 'POST', { brand_id: $('#cb').value, token: $('#ct').value, ig_user_id: $('#ci').value }); toast(`Connected @${r.username}`); reload(); } catch (e) { toast(e.message, 'bad'); } };
+  $('#cp').onchange = () => { const fb = $('#cp').value === 'facebook'; $('#cil').textContent = fb ? T('Facebook Page ID (numbers only)') : T('Instagram account ID (numbers only)'); $('#ci').placeholder = fb ? '1000…' : '1784…'; };
+  $('#conn').onclick = async () => { if (!S.brands.length) return toast('Create a brand first', 'bad'); try { const r = await api('/api/channels', 'POST', { platform: $('#cp').value, brand_id: $('#cb').value, token: $('#ct').value, ig_user_id: $('#ci').value }); toast(`Connected @${r.username}`); reload(); } catch (e) { toast(e.message, 'bad'); } };
   $('#demo').onclick = async () => { if (!S.brands.length) return toast('Create a brand first', 'bad'); await api('/api/channels', 'POST', { brand_id: $('#cb').value, demo: true }); reload(); };
 }
 
@@ -922,7 +924,7 @@ function viewAjustes() {
       <div class="seg" id="langseg" role="tablist">${(S.langs || [{ code: 'en', name: 'English' }]).map((l) => `<button type="button" data-l="${esc(l.code)}" class="${LANG === l.code ? 'on' : ''}" translate="no">${esc(l.name)}</button>`).join('')}</div>
       <p class="mute" style="margin-top:14px">Only changes the language of the panel\'s menus, buttons and texts. It does not change your messages, replies or automations. It is remembered in this browser.</p></div>
     <div class="card rise" style="--i:2"><h2>Where each setting lives</h2>
-      ${row('Brands and Instagram accounts', 'Connect accounts, create and delete brands.', '#/conexion')}
+      ${row('Brands and accounts', 'Connect accounts, create and delete brands.', '#/conexion')}
       ${row('Messages and replies', 'They are edited inside each automation.', '#/automatizaciones')}
       ${row('Limits and reading intervals', 'They are changed in the .env file, then the program is restarted (HOURLY_CAP, POLL_SECONDS, DM_POLL_SECONDS).', '')}
       ${row('Panel password and App Secret', 'They live in the .env file. For security they are not edited from the web.', '')}

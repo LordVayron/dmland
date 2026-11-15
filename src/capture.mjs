@@ -3,7 +3,7 @@
 //   2) here the DMs from waiting people are read, the email is extracted and the resource is sent.
 // Meta only lets you write to someone within 24 h of their last message: exactly what we use.
 import { all, get, run, logEvent } from './db.mjs';
-import * as meta from './meta.mjs';
+import { apiFor } from './platform.mjs';
 import { fill, json, addTag, isRateLimit, isBlocked, throttle, parseMetaTime, withUtm, DEFAULT_RETRY } from './engine.mjs';
 
 const EXPIRE_DAYS = 3;          // if they do not answer in 3 days, stop watching
@@ -24,11 +24,12 @@ export const captureCounts = () => {
   return { waiting: r.find((x) => x.status === 'waiting')?.n ?? 0, gotEmail: r.find((x) => x.status === 'got_email')?.n ?? 0 };
 };
 
+// The last argument of each call is the account's platform ('instagram' | 'facebook').
 const defaults = {
-  listConversations: meta.listConversations,
-  conversationByUser: meta.conversationByUser,
-  sendText: meta.sendText,
-  sendButton: meta.sendButton,
+  listConversations: (host, token, id, limit, type) => apiFor(type).listConversations(host, token, id, limit),
+  conversationByUser: (host, token, id, userId, type) => apiFor(type).conversationByUser(host, token, id, userId),
+  sendText: (host, token, id, to, text, type) => apiFor(type).sendText(host, token, id, to, text),
+  sendButton: (host, token, id, to, text, title, url, type) => apiFor(type).sendButton(host, token, id, to, text, title, url),
   pause: () => sleep(600),
 };
 
@@ -44,8 +45,8 @@ function saveEmail(capture, automation, email) {
 async function sendResource(d, ch, capture, automation) {
   if (throttle.until > Date.now()) return false; // Meta asked for a pause: retry on the next cycle
   const vars = { username: capture.username || '', first_name: capture.username || '' };
-  const text = withUtm(fill(automation.dm_text, vars), automation);
-  const buttonUrl = withUtm(automation.button_url, automation);
+  const text = withUtm(fill(automation.dm_text, vars), automation, ch.type);
+  const buttonUrl = withUtm(automation.button_url, automation, ch.type);
   try {
     if (automation.button_url) {
       try { await d.sendButton(ch, capture.igsid, text, automation.button_title || 'Abrir', buttonUrl); }
@@ -124,8 +125,8 @@ export async function pollDMs(deps = {}) {
     // the senders receive the channel as first argument, so tests can replace them
     const ch = rawCh;
     const send = {
-      sendText: (c, to, t) => d.sendText(c.host, c.token, c.ig_user_id, to, t),
-      sendButton: (c, to, t, title, url) => d.sendButton(c.host, c.token, c.ig_user_id, to, t, title, url),
+      sendText: (c, to, t) => d.sendText(c.host, c.token, c.ig_user_id, to, t, c.type),
+      sendButton: (c, to, t, title, url) => d.sendButton(c.host, c.token, c.ig_user_id, to, t, title, url, c.type),
     };
     const dd = { ...d, ...send };
     try {
@@ -139,7 +140,7 @@ export async function pollDMs(deps = {}) {
       // 2) people who have not answered yet: a single call brings everyone's recent conversations
       const waiting = caps.filter((c) => c.status === 'waiting');
       if (!waiting.length) continue;
-      const list = (await d.listConversations(ch.host, ch.token, ch.ig_user_id)).data || [];
+      const list = (await d.listConversations(ch.host, ch.token, ch.ig_user_id, 30, ch.type)).data || [];
       const byUser = new Map(); // person id -> messages of their conversation
       for (const conv of list) {
         const msgs = conv.messages?.data || [];
@@ -153,7 +154,7 @@ export async function pollDMs(deps = {}) {
         let msgs = byUser.get(String(cap.igsid));
         if (!msgs && lookups < MAX_LOOKUPS) { // not in the recent list: ask for that person
           lookups++; await d.pause();
-          const conv = (await d.conversationByUser(ch.host, ch.token, ch.ig_user_id, cap.igsid)).data?.[0];
+          const conv = (await d.conversationByUser(ch.host, ch.token, ch.ig_user_id, cap.igsid, ch.type)).data?.[0];
           msgs = conv?.messages?.data;
         }
         if (!msgs) continue;

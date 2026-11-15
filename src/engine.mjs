@@ -1,5 +1,5 @@
 import { all, get, run, logEvent } from './db.mjs';
-import * as meta from './meta.mjs';
+import { apiFor } from './platform.mjs';
 
 const norm = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -30,14 +30,14 @@ export const rng = { next: () => Math.random() };
 const slug = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'dm';
 // Adds utm_source / utm_medium / utm_campaign to every http(s) link in the text. If the link already has utm_source, it is left alone.
 // Only acts if the automation has it enabled (off by default: messages go out exactly as you wrote them).
-export function withUtm(text, a) {
+export function withUtm(text, a, source = 'instagram') {
   if (!a?.utm || !text) return text;
   const campaign = slug(json(a.keywords, [])[0] || a.name);
   return String(text).replace(/https?:\/\/[^\s<>"']*[^\s<>"'.,;:!?)\]]/g, (m) => {
     try {
       const u = new URL(m);
       if (u.searchParams.has('utm_source')) return m;
-      u.searchParams.set('utm_source', 'instagram'); u.searchParams.set('utm_medium', 'dm'); u.searchParams.set('utm_campaign', campaign);
+      u.searchParams.set('utm_source', source); u.searchParams.set('utm_medium', 'dm'); u.searchParams.set('utm_campaign', campaign);
       return u.toString();
     } catch { return m; }
   });
@@ -57,14 +57,18 @@ export function addTag(contact, tag) {
 }
 
 // sender: { replyToComment, privateReplyText, privateReplyButton } -> real o simulado
-export const realSender = (host, token, igUserId) => ({
-  // Follow-up messages to someone who already wrote to us (24 h window)
-  sendText: (to, text) => meta.sendText(host, token, igUserId, to, text),
-  sendButton: (to, text, title, url) => meta.sendButton(host, token, igUserId, to, text, title, url),
-  replyToComment: (cid, msg) => meta.replyToComment(host, token, cid, msg),
-  privateReplyText: (cid, text) => meta.privateReplyText(host, token, igUserId, cid, text),
-  privateReplyButton: (cid, text, title, url) => meta.privateReplyButton(host, token, igUserId, cid, text, title, url),
-});
+// `type` is the account's platform ('instagram' or 'facebook'); `igUserId` holds the Instagram account ID or the Page ID.
+export const realSender = (host, token, igUserId, type = 'instagram') => {
+  const api = apiFor(type);
+  return {
+    // Follow-up messages to someone who already wrote to us (24 h window)
+    sendText: (to, text) => api.sendText(host, token, igUserId, to, text),
+    sendButton: (to, text, title, url) => api.sendButton(host, token, igUserId, to, text, title, url),
+    replyToComment: (cid, msg) => api.replyToComment(host, token, cid, msg),
+    privateReplyText: (cid, text) => api.privateReplyText(host, token, igUserId, cid, text),
+    privateReplyButton: (cid, text, title, url) => api.privateReplyButton(host, token, igUserId, cid, text, title, url),
+  };
+};
 
 export function drySender(log) {
   return {
@@ -139,8 +143,8 @@ async function execute({ a, channel, comment, contact, runId, sender, instant })
     const abTest = askMode && !!a.alt_ask_text;
     const useB = abTest && rng.next() < 0.5;
     const variant = abTest ? (useB ? 'B' : 'A') : null;
-    const text = withUtm(fill(askMode ? (useB ? a.alt_ask_text : (a.ask_text || DEFAULT_ASK)) : a.dm_text, vars), a);
-    const buttonUrl = withUtm(a.button_url, a);
+    const text = withUtm(fill(askMode ? (useB ? a.alt_ask_text : (a.ask_text || DEFAULT_ASK)) : a.dm_text, vars), a, channel.type);
+    const buttonUrl = withUtm(a.button_url, a, channel.type);
     let resp;
     try {
       if (a.button_url && !askMode) {

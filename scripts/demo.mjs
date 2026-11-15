@@ -44,11 +44,14 @@ const REELS = [
   { ch: 1, title: 'LAUNCH|CHECKLIST', caption: 'Everything to check before you launch. Comment LAUNCH.', age: 2, base: 80, kw: 'LAUNCH', mode: 'link', name: 'Launch checklist', tag: 'lead-launch', url: 'https://example.com/launch', btn: 'Get the list' },
   { ch: 1, title: 'PRICING|SECRETS', caption: 'How to price without guessing. Comment PRICE for the sheet.', age: 7, base: 60, kw: 'PRICE', mode: 'email', name: 'Pricing sheet', tag: 'lead-price', url: 'https://example.com/pricing', btn: 'Open the sheet' },
   { ch: 1, title: 'TEAM|RITUALS', caption: 'Weekly rituals that keep a small team fast. Comment TEAM.', age: 13, base: 40, kw: 'TEAM', mode: 'link', name: 'Team rituals', tag: 'lead-team', url: 'https://example.com/team', btn: 'Get the rituals' },
+  { ch: 2, title: 'COFFEE|CLUB', caption: 'Join the coffee club and get 10% off your first bag. Comment CLUB and we will message you.', age: 2, base: 55, kw: 'CLUB', mode: 'email', name: 'Coffee club', tag: 'lead-club', url: 'https://example.com/club', btn: 'Join the club' },
+  { ch: 2, title: 'HOME|BREW GUIDE', caption: 'Our home brewing guide, free this week. Comment BREW.', age: 8, base: 40, kw: 'BREW', mode: 'link', name: 'Home brew guide', tag: 'lead-brew', url: 'https://example.com/brew', btn: 'Get the guide' },
 ].map((r, i) => ({ ...r, i, id: `1790000000000${String(i + 1).padStart(4, '0')}` }));
 
 const CHANNELS = [
   { brand: 'Acme Studio', ig: '17841400000000001', user: 'acme.studio', followers: [12480, 13210] },
   { brand: 'Nova Labs', ig: '17841400000000002', user: 'nova.labs', followers: [3120, 3390] },
+  { brand: 'Bloom Cafe', ig: '100000000000003', user: 'bloomcafe', followers: [840, 905], type: 'facebook' }, // a Facebook Page
 ];
 
 // ---------- fake Meta Graph API (the only place the app does network calls) ----------
@@ -56,11 +59,13 @@ const realFetch = globalThis.fetch;
 globalThis.fetch = async (url, opts) => {
   const u = new URL(String(url));
   if (u.hostname !== 'graph.facebook.com') return realFetch(url, opts);
-  const m = u.pathname.match(/^\/v[\d.]+\/(\d+)(\/media)?$/);
+  const m = u.pathname.match(/^\/v[\d.]+\/(\d+)(\/media|\/published_posts)?$/);
   const ch = m && CHANNELS.find((c) => c.ig === m[1]);
   const ok = (o) => new Response(JSON.stringify(o), { status: 200, headers: { 'content-type': 'application/json' } });
   if (ch && m[2]) {
     const idx = CHANNELS.indexOf(ch);
+    if (ch.type === 'facebook') return ok({ data: REELS.filter((r) => r.ch === idx).map((r) => ({
+      id: r.id, message: r.caption, full_picture: thumb(r.title, r.i), permalink_url: `https://www.facebook.com/${ch.user}/posts/demo${r.i + 1}`, created_time: new Date(r.pub).toISOString().replace('Z', '+0000') })) });
     return ok({ data: REELS.filter((r) => r.ch === idx).map((r) => ({
       id: r.id, caption: r.caption, media_type: 'VIDEO', thumbnail_url: thumb(r.title, r.i), permalink: `https://www.instagram.com/reel/DEMO${r.i + 1}/`,
       timestamp: new Date(r.pub).toISOString().replace('Z', '+0000'), like_count: 0, comments_count: 0 })) });
@@ -86,7 +91,7 @@ const brandIds = [], chanIds = [];
 for (const c of CHANNELS) {
   const b = Number(run('INSERT INTO brands(name) VALUES (?)', c.brand).lastInsertRowid);
   brandIds.push(b);
-  chanIds.push(Number(run("INSERT INTO channels(brand_id, ig_user_id, username, token, host) VALUES (?,?,?,?,'graph.facebook.com')", b, c.ig, c.user, 'DEMO-TOKEN-NOT-REAL-0000').lastInsertRowid));
+  chanIds.push(Number(run("INSERT INTO channels(brand_id, ig_user_id, username, token, host, type) VALUES (?,?,?,?,'graph.facebook.com',?)", b, c.ig, c.user, 'DEMO-TOKEN-NOT-REAL-0000', c.type || 'instagram').lastInsertRowid));
 }
 
 const mkContacts = (chIdx, n) => Array.from({ length: n }, (_, k) => {
@@ -97,7 +102,7 @@ const mkContacts = (chIdx, n) => Array.from({ length: n }, (_, k) => {
     chanIds[chIdx], ext, username, '[]', '{}', sqlTs(first), sqlTs(first)).lastInsertRowid);
   return { id, username, ext, tags: new Set() };
 });
-const pools = [mkContacts(0, 520), mkContacts(1, 160)];
+const pools = [mkContacts(0, 520), mkContacts(1, 160), mkContacts(2, 70)];
 
 const AUTO = {};
 for (const r of REELS) {
@@ -126,7 +131,7 @@ for (const r of REELS) {
     const sinceDays = r.age - d;
     const dayStart0 = startOfDay(NOW - d * DAY), window = Math.min(dayStart0 + DAY, NOW - 60e3) - Math.max(dayStart0, r.pub);
     if (window <= 0) continue;
-    const volume = Math.round(r.base * Math.exp(-sinceDays / 3.2) * (0.8 + rnd() * 0.4) * (r.ch === 1 ? 0.7 : 1) * Math.min(1, window / DAY + 0.15));
+    const volume = Math.round(r.base * Math.exp(-sinceDays / 3.2) * (0.8 + rnd() * 0.4) * [1, 0.7, 0.45][r.ch] * Math.min(1, window / DAY + 0.15));
     for (let k = 0; k < volume; k++) {
       const dayStart = startOfDay(NOW - d * DAY);
       const lo = Math.max(dayStart, r.pub), hi = Math.min(dayStart + DAY, NOW - 60e3); // after publishing, before now
@@ -193,6 +198,7 @@ for (const [a, b] of spans) run('INSERT INTO uptime(started, last) VALUES (?,?)'
 const ev = (minsAgo, kind, note) => run('INSERT INTO events(ts, kind, note) VALUES (?,?,?)', sqlTs(NOW - minsAgo * 60e3), kind, note);
 ev(2400, 'channel', `Conectada @acme.studio (${CHANNELS[0].ig}); webhooks: ok`);
 ev(2399, 'channel', `Conectada @nova.labs (${CHANNELS[1].ig}); webhooks: ok`);
+ev(2398, 'channel', `Connected Facebook Page @bloomcafe (${CHANNELS[2].ig}); webhooks: ok`);
 const recent = all("SELECT r.id, a.name, c.username FROM runs r JOIN automations a ON a.id=r.automation_id JOIN contacts c ON c.id=r.contact_id WHERE r.status='done' ORDER BY r.created_at DESC LIMIT 14");
 recent.forEach((x, i) => ev(i * 7 + 1, 'run', `"${x.name}" ran for @${x.username}`));
 
