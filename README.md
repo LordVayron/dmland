@@ -21,7 +21,7 @@ It runs on your own computer with **Node 24 and no npm dependencies**. Your toke
 - **Ask for email first.** Optional mode: DMLand asks for an email, reads the answer, saves it and then sends the resource. Edit the consent line, export emails as CSV.
 - **A/B test** two versions of the message that asks for the email and see which wins.
 - **UTM links.** Add campaign parameters to every link you send.
-- **Instagram and Facebook Pages.** Connect Instagram Professional accounts, Facebook Pages (DMs through Messenger), or both. Facebook Page support is new and not yet tested against a real Page.
+- **Instagram and Facebook Pages.** Connect Instagram Professional accounts, Facebook Pages (DMs through Messenger), or both. Facebook Page support is new: reading a real Page is checked, a Messenger DM to a real commenter is not confirmed yet.
 - **Multi-brand.** Connect several accounts and group them by brand.
 - **Safe sending.** Stays under Meta's hourly limit, sends the DM before the public reply, never answers a comment twice, and pauses and retries if Meta slows you down.
 - **Analytics.** Reels with views and DMs, funnel, best times to post, email list growth, speed to DM, uptime, and people who wrote back.

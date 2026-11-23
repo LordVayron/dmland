@@ -65,11 +65,13 @@ comment that keyword. Within about a minute DMLand replies and sends the DM.
 
 ## Facebook Page
 
-> **Not yet tested against a real Page.** The steps and permissions below come from Meta's
-> documentation. If something differs, follow Meta's current docs and please open an issue.
+> Connecting and reading a real Page (posts, reels, comments, Messenger) has been checked. Sending a DM
+> to a real commenter through Messenger has not been confirmed yet. If something differs, follow Meta's
+> current docs and please open an issue.
 
-The app from step 1 works for Pages too. If your app's use case does not offer Messenger, add the
-**Messenger** product (or the use case that covers managing Pages and messaging) in the app dashboard.
+The app from step 1 works for Pages too. In the app dashboard → **Use cases** → **Add use cases**
+(filter **All**), add **Engage with customers on Messenger from Meta** and **Manage everything on your
+Page**. Then, in each one's **Customize → Permissions**, add the permissions listed in step 3.
 
 1. **Put the Page in your Business Portfolio**: Business Settings → Accounts → **Pages**.
 2. **Assign the Page to the system user**: Users → System users → your user → **Assign assets** →
@@ -78,14 +80,15 @@ The app from step 1 works for Pages too. If your app's use case does not offer M
 3. **Generate a token** on the system user (expiry **Never**) with these permissions:
    - `pages_show_list`
    - `pages_read_engagement`
+   - `pages_read_user_content` (reading comments)
    - `pages_manage_engagement` (public replies to comments)
    - `pages_messaging` (DMs through Messenger)
    - `pages_manage_metadata` (webhook subscription)
    - `business_management`
-
-   A Page access token also works, but system user tokens do not expire.
 4. **Connect it in DMLand**: Brands & accounts → **Platform: Facebook Page** → enter the **Facebook
-   Page ID** and paste the token → **Connect**.
+   Page ID** and paste the system user token → **Connect**. DMLand exchanges it for the Page access token
+   that Meta requires for Pages, and stores only that one. Before saving, it checks that it can read posts,
+   comments and Messenger; if a permission is missing, the error names it.
 
 Your Page ID is in Business Settings → Accounts → Pages, or on the Page itself under About → Page transparency.
 
@@ -95,5 +98,7 @@ account you own. The DM arrives in that account's Messenger.
 | Symptom | Likely cause |
 |---|---|
 | "Application does not have permission" (code 10 or 200) | The system user is missing the Page, or the token lacks `pages_messaging` / `pages_manage_engagement`. |
-| No posts in the picker | DMLand reads the Page's published posts. Reels may not appear there yet (not verified). |
+| "requires the 'pages_read_user_content' permission" (code 10) | Add `pages_read_user_content` to the app's Page use case and to the token. |
+| "A page access token is required" (code 210 or 190) | You connected before DMLand stored Page tokens. Connect the Page again with the same ID. |
+| No posts in the picker | DMLand reads the Page's published posts and reels (24 newest). A reel that is also a post shows once. |
 | Analytics shows "no data" for views | Facebook insights are not implemented yet. DMs, emails and the funnel still work. |
