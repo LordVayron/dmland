@@ -1,6 +1,6 @@
 {
   "name": "dmland",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Self-hosted comment-to-DM automation for Instagram and Facebook Pages. Someone comments a keyword on your reel or post, DMLand replies and sends them your link. Zero dependencies.",
   "type": "module",
   "license": "MIT",

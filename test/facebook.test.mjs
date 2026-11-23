@@ -30,12 +30,43 @@ assert.equal((await fb.getAccount(H, 'tok', '111')).username, 'acme.studio');
 assert.equal(last().auth, 'Bearer tok', 'the token travels in the header, never in the URL');
 
 // ---- posts come back in the shape the dashboard already uses ----
-reply = { data: [{ id: '111_1', message: 'Hello', permalink_url: 'https://fb.example/p/1', created_time: '2026-11-12T22:54:24+0000', full_picture: 'https://img.example/1.jpg',
+const postsReply = { data: [{ id: '111_1', message: 'Hello', permalink_url: 'https://fb.example/p/1', created_time: '2026-11-12T22:54:24+0000', full_picture: 'https://img.example/1.jpg',
   likes: { summary: { total_count: 7 } }, comments: { summary: { total_count: 3 } } }] };
+const reelsReply = { data: [{ id: '777', description: 'Reel text', created_time: '2026-11-13T10:00:00+0000', permalink_url: '/reel/777/', picture: 'https://img.example/r.jpg' }] };
+reply = (u) => (u.includes('/video_reels') ? reelsReply : postsReply);
+let n0 = calls.length;
 const posts = await fb.listMedia(H, 'tok', '111');
-assert.ok(path().startsWith('/v27.0/111/published_posts'), 'reads the Page posts');
-assert.deepEqual(posts.data[0], { id: '111_1', caption: 'Hello', media_type: 'POST', thumbnail_url: 'https://img.example/1.jpg', media_url: 'https://img.example/1.jpg',
+const urls = calls.slice(n0).map((c) => decodeURIComponent(new URL(c.url).pathname));
+assert.ok(urls.includes('/v27.0/111/published_posts'), 'reads the Page posts');
+assert.ok(urls.includes('/v27.0/111/video_reels'), 'reads the Page reels too');
+assert.equal(posts.data.length, 2);
+assert.deepEqual(posts.data[0], { id: '777', caption: 'Reel text', media_type: 'REELS', thumbnail_url: 'https://img.example/r.jpg', media_url: 'https://img.example/r.jpg',
+  permalink: 'https://www.facebook.com/reel/777/', timestamp: '2026-11-13T10:00:00+0000', like_count: null, comments_count: null }, 'newest first, reels in the same shape');
+assert.deepEqual(posts.data[1], { id: '111_1', caption: 'Hello', media_type: 'POST', thumbnail_url: 'https://img.example/1.jpg', media_url: 'https://img.example/1.jpg',
   permalink: 'https://fb.example/p/1', timestamp: '2026-11-12T22:54:24+0000', like_count: 7, comments_count: 3 });
+// a reel that is also listed as a post is the same video: only the post stays
+reply = (u) => (u.includes('/video_reels') ? { data: [...reelsReply.data, { id: '888', description: 'Hello', created_time: '2026-11-12T22:54:00+0000', post_id: '1' }] } : postsReply);
+assert.deepEqual((await fb.listMedia(H, 'tok', '111')).data.map((m) => m.id), ['777', '111_1']);
+// if Meta refuses the reels list, the posts still come back
+const realFetch = globalThis.fetch;
+globalThis.fetch = async (url, opts) => (String(url).includes('/video_reels')
+  ? new Response(JSON.stringify({ error: { message: 'nope', code: 100 } }), { status: 400, headers: { 'content-type': 'application/json' } })
+  : realFetch(url, opts));
+assert.deepEqual((await fb.listMedia(H, 'tok', '111')).data.map((m) => m.id), ['111_1']);
+globalThis.fetch = realFetch;
+
+// ---- connecting: the system user token is exchanged for the Page token ----
+reply = { id: '111', name: 'Acme', access_token: 'PAGE-TOKEN' };
+const acct = await fb.getAccount(H, 'sys', '111');
+assert.equal(acct.page_token, 'PAGE-TOKEN');
+assert.equal(acct.access_token, undefined, 'the raw token is not passed around under its Meta name');
+assert.ok(path().includes('fields=id,name,username,access_token'));
+// checkAccess names the missing permission
+globalThis.fetch = async (url) => (String(url).includes('/comments')
+  ? new Response(JSON.stringify({ error: { message: "(#10) This endpoint requires the 'pages_read_user_content' permission", code: 10 } }), { status: 400, headers: { 'content-type': 'application/json' } })
+  : new Response(JSON.stringify({ data: [{ id: '111_1' }] }), { status: 200, headers: { 'content-type': 'application/json' } }));
+await assert.rejects(fb.checkAccess(H, 'PAGE-TOKEN', '111'), /pages_read_user_content/);
+globalThis.fetch = realFetch;
 
 // ---- comments: newest first, top-level only, normalized ----
 reply = { data: [{ id: '111_1_9', message: 'GUIDE', from: { id: 'u1', name: 'Ana' }, created_time: '2026-11-12T22:54:24+0000' }, { id: '111_1_8', message: 'hi', created_time: '2026-11-12T22:50:00+0000' }], paging: { cursors: { after: 'C' } } };

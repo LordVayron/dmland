@@ -107,11 +107,19 @@ async function api(req, res, url) {
         me = await meta.getMe(host, token);
         igId = String(me.user_id || me.id);
       }
+      // Facebook Page: store the Page token (Meta requires it for posts, comments and Messenger) and check,
+      // before saving, that it can read comments, so a missing permission shows up here and not days later.
+      let saveToken = token;
+      if (type === 'facebook') {
+        if (!me.page_token) throw new Error('Meta did not return the Page token. Check that the system user has this Page assigned and that the token has pages_show_list.');
+        saveToken = me.page_token;
+        await api.checkAccess(host, saveToken, igId);
+      }
       let sub = 'ok';
-      try { await api.subscribeWebhooks(host, token, igId); } catch (e) { sub = `could not subscribe to webhooks: ${e.message}`; }
+      try { await api.subscribeWebhooks(host, saveToken, igId); } catch (e) { sub = `could not subscribe to webhooks: ${e.message}`; }
       run(`INSERT INTO channels(brand_id, ig_user_id, username, token, host, type) VALUES (?,?,?,?,?,?)
            ON CONFLICT(ig_user_id) DO UPDATE SET token=excluded.token, username=excluded.username, brand_id=excluded.brand_id, host=excluded.host, type=excluded.type, token_saved_at=CURRENT_TIMESTAMP`,
-        Number(body.brand_id), igId, me.username, token, host, type);
+        Number(body.brand_id), igId, me.username, saveToken, host, type);
       logEvent('channel', `Connected ${type === 'facebook' ? 'Facebook Page ' : ''}@${me.username} (${igId}); webhooks: ${sub}`);
       return send(res, 200, { ok: true, username: me.username, ig_user_id: igId, platform: type, webhooks: sub });
     }
