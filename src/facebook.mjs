@@ -2,25 +2,81 @@
 // the engine and the email capture work on both without knowing which one they talk to.
 // Everything here is returned in Instagram's shape: posts as {id, caption, thumbnail_url, permalink,
 // timestamp, ...} and comments as {id, text, username, timestamp, from}.
-// The "account id" is the Page ID; the token is a Page access token (or a system user token with the Page assigned).
+// The "account id" is the Page ID. The stored token is a Page access token: the person pastes a system user
+// token and DMLand exchanges it for the Page token when connecting (see getAccount).
 import { call } from './meta.mjs';
 
 export const DEFAULT_HOST = 'graph.facebook.com';
 
 // Page data. Facebook Pages may have no @username: fall back to the name without spaces.
+// Also returns `page_token`: Meta requires a Page access token for posts, comments and Messenger.
+// It is obtained with the system user token; if that token never expires, this one does not either.
 export const getAccount = async (host, token, pageId) => {
-  const r = await call(host, 'GET', `/${pageId}?fields=id,name,username`, token);
-  return { ...r, username: r.username || String(r.name || r.id).replace(/\s+/g, '') };
+  const r = await call(host, 'GET', `/${pageId}?fields=id,name,username,access_token`, token);
+  const { access_token: pageToken, ...info } = r;
+  return { ...info, username: info.username || String(info.name || info.id).replace(/\s+/g, ''), page_token: pageToken || null };
 };
 
 const POST_FIELDS = 'id,message,permalink_url,created_time,full_picture,likes.limit(0).summary(true),comments.limit(0).summary(true)';
+const LIGHT_POST_FIELDS = 'id,message,permalink_url,created_time,full_picture';
+const fromPost = (p) => ({
+  id: p.id, caption: p.message || '', media_type: 'POST', thumbnail_url: p.full_picture || '', media_url: p.full_picture || '',
+  permalink: p.permalink_url, timestamp: p.created_time,
+  like_count: p.likes?.summary?.total_count ?? null, comments_count: p.comments?.summary?.total_count ?? null });
+
+// Meta sometimes answers "Please reduce the amount of data" (code 1) to the full list: retry smaller and without counts.
+async function publishedPosts(host, token, pageId) {
+  try { return await call(host, 'GET', `/${pageId}/published_posts?fields=${POST_FIELDS}&limit=24`, token); }
+  catch (e) {
+    if (e.code !== 1 && !/reduce the amount of data/i.test(e.message)) throw e;
+    return call(host, 'GET', `/${pageId}/published_posts?fields=${LIGHT_POST_FIELDS}&limit=12`, token);
+  }
+}
+
+// Page reels. A reel usually also shows up as a post (its `post_id`) and both share the same comments.
+const REEL_FIELDS = 'id,description,created_time,permalink_url,picture,post_id';
+const fromReel = (v) => ({
+  id: v.id, caption: v.description || '', media_type: 'REELS', thumbnail_url: v.picture || '', media_url: v.picture || '',
+  permalink: v.permalink_url ? (String(v.permalink_url).startsWith('http') ? v.permalink_url : `https://www.facebook.com${v.permalink_url}`) : null,
+  timestamp: v.created_time, like_count: null, comments_count: null });
+export const listReels = async (host, token, pageId) =>
+  ((await call(host, 'GET', `/${pageId}/video_reels?fields=${REEL_FIELDS}&limit=12`, token)).data || []).map((v) => ({ ...fromReel(v), post_id: v.post_id || null }));
+
+// Posts and reels together, newest first. A reel that is already listed as a post is the same video:
+// only the post stays (it has the thumbnail and like count). If Meta refuses the reels list, posts alone come back.
 export const listMedia = async (host, token, pageId) => {
-  const r = await call(host, 'GET', `/${pageId}/published_posts?fields=${POST_FIELDS}&limit=24`, token);
-  return { ...r, data: (r.data || []).map((p) => ({
-    id: p.id, caption: p.message || '', media_type: 'POST', thumbnail_url: p.full_picture || '', media_url: p.full_picture || '',
-    permalink: p.permalink_url, timestamp: p.created_time,
-    like_count: p.likes?.summary?.total_count ?? null, comments_count: p.comments?.summary?.total_count ?? null })) };
+  const r = await publishedPosts(host, token, pageId);
+  const posts = (r.data || []).map(fromPost);
+  let reels = [];
+  try { reels = await listReels(host, token, pageId); } catch { /* no reels: posts only */ }
+  const postIds = new Set(posts.map((p) => String(p.id)));
+  reels = reels.filter((v) => !v.post_id || !postIds.has(`${pageId}_${v.post_id}`)).map(({ post_id, ...v }) => v);
+  const data = [...posts, ...reels].sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || ''))).slice(0, 24);
+  return { ...r, data };
 };
+
+// One post or reel by its ID.
+export const getMedia = async (host, token, id) => {
+  try { return fromPost(await call(host, 'GET', `/${id}?fields=${POST_FIELDS}`, token)); }
+  catch { return fromReel(await call(host, 'GET', `/${id}?fields=${REEL_FIELDS}`, token)); }
+};
+
+// Checks, with the Page token, what DMLand needs: reading posts, comments and Messenger.
+// Throws an error that names the missing permission.
+const PERM_HINT = { 10: 'pages_read_user_content', 200: 'pages_read_engagement', 190: 'pages_messaging' };
+export async function checkAccess(host, pageToken, pageId) {
+  const step = async (what, path) => {
+    try { return await call(host, 'GET', path, pageToken); }
+    catch (e) {
+      const perm = String(e.message).match(/'(pages_[a-z_]+)'/)?.[1] || PERM_HINT[e.code];
+      throw new Error(`The Page was found, but Meta does not allow ${what}${perm ? `: the token is missing the ${perm} permission` : ''}. Add it to the app and the token, generate a new token and connect again. (Meta: ${e.message})`);
+    }
+  };
+  const posts = await step('reading its posts', `/${pageId}/published_posts?fields=id&limit=1`);
+  const first = posts.data?.[0];
+  if (first) await step('reading comments', `/${first.id}/comments?fields=id&filter=toplevel&limit=1`);
+  await step('reading Messenger conversations', `/${pageId}/conversations?platform=messenger&fields=id&limit=1`);
+}
 
 export const getAccountStats = async (host, token, pageId) => {
   const r = await call(host, 'GET', `/${pageId}?fields=followers_count,fan_count`, token);

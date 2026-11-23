@@ -39,11 +39,11 @@ then the public reply goes under the comment. Differences:
 | Comment age | Private replies only for comments under 7 days old, one per comment (same as Instagram) |
 | Follow-up messages | Only within 24 hours of the person's last message (Messenger's standard window), which covers the email capture conversation |
 | Message size | DMLand keeps the 1000-byte cap for both platforms. Messages with a button are cut to 640 characters (Messenger limit). |
-| Which posts | The Page's 24 most recent published posts, top-level comments only |
+| Which posts | The Page's 24 most recent posts and reels (a reel that is also a post shows once), top-level comments only |
 | Insights | Not implemented yet: views and reach show "no data" for Pages |
 | UTM links | `utm_source` is `facebook` or `instagram`, depending on the account |
 
-Facebook Page support has not been tested against a real Page yet; it is built from Meta's documentation.
+Connecting and reading a real Page has been checked; a Messenger DM to a real commenter has not been confirmed yet.
 
 ## Pages
 

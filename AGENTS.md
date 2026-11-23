@@ -42,8 +42,9 @@ Instagram API with Instagram Login or Facebook Login for Business, system users,
 the permissions `instagram_basic`, `instagram_manage_comments`, `instagram_manage_messages` and
 `instagram_manage_insights`. For a Facebook Page, also read the Messenger Platform docs (private
 replies to comments, the 24-hour messaging window) and the permissions `pages_show_list`,
-`pages_read_engagement`, `pages_manage_engagement`, `pages_messaging`, `pages_manage_metadata` and
-`business_management`. Prefer what you read there over `docs/META-SETUP.md`, which is a
+`pages_read_engagement`, `pages_read_user_content`, `pages_manage_engagement`, `pages_messaging`,
+`pages_manage_metadata` and `business_management`. The person pastes a system user token; DMLand
+exchanges it for the Page access token itself. Prefer what you read there over `docs/META-SETUP.md`, which is a
 fallback checklist and may be out of date. If you cannot browse, use `docs/META-SETUP.md` and tell the
 person it may be slightly out of date.
 

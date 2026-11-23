@@ -36,7 +36,7 @@ Create the automation soon after you publish. Your newest post is always at the 
 
 - **Posts older than your 24 newest** do not appear in the picker, so you cannot target them one by one.
 - **Carousels**: DMLand does not filter by post type, so comments on carousels should work the same way, but this has not been tested yet.
-- **Facebook Pages**: DMLand lists the Page's 24 most recent published posts and answers top-level comments only (not replies to other comments). The DM arrives in Messenger. Whether reels show up in that list has not been verified yet.
+- **Facebook Pages**: DMLand lists the Page's 24 most recent posts and reels and answers top-level comments only (not replies to other comments). A reel that Facebook also shows as a post appears once, since both share the same comments. The DM arrives in Messenger.
 - **Many posts**: you do not need an automation per post. One automation with **All posts and reels** covers your latest 5 at once.
 
 ## Automating it further
