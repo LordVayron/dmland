@@ -33,6 +33,9 @@ const poller = await import('./poller.mjs');
 const { automationFields } = await import('./automations.mjs');
 const stats = await import('./stats.mjs');
 const { analytics } = await import('./analytics.mjs');
+const { contentReport, saveScript } = await import('./report.mjs');
+const aiReport = await import('./ai-report.mjs');
+const { parseScript } = await import('./script.mjs');
 
 const PORT = Number(process.env.PORT || 3000);
 const mediaCache = new Map(); // channel -> { at, data }
@@ -133,6 +136,7 @@ async function api(req, res, url) {
     if (hit && Date.now() - hit.at < 120000) return send(res, 200, hit.data);
     const data = (await apiFor(c.type).listMedia(c.host, c.token, c.ig_user_id)).data || [];
     mediaCache.set(c.id, { at: Date.now(), data });
+    for (const md of data) stats.saveMediaInfo(c.id, md); // posting time, for the content report
     return send(res, 200, data);
   }
 
@@ -161,6 +165,21 @@ async function api(req, res, url) {
 
   if (p === '/api/poller' && m === 'GET') return send(res, 200, poller.getStatus());
   if (p === '/api/analytics' && m === 'GET') return send(res, 200, analytics({ brand: url.searchParams.get('brand'), range: url.searchParams.get('range') || 7 }));
+  // Content report (fixed rules) + optional AI reading
+  if (p === '/api/report' && m === 'GET') {
+    const o = { brand: url.searchParams.get('brand'), range: Number(url.searchParams.get('range')) || 30, lang: url.searchParams.get('lang') || 'en' };
+    return send(res, 200, { ...contentReport(o), ai: { enabled: aiReport.aiEnabled(), model: aiReport.aiModel(), saved: aiReport.aiEnabled() ? aiReport.cachedInterpretation(o) : null } });
+  }
+  if (p === '/api/report/ai' && m === 'POST') {
+    try { return send(res, 200, await aiReport.interpret({ brand: body.brand || null, range: Number(body.range) || 30, lang: body.lang, force: !!body.force })); }
+    catch (e) { logEvent('warn', `AI reading failed: ${e.message}`); return send(res, 502, { error: e.message }); }
+  }
+  if (p === '/api/reel-script' && m === 'POST') { // paste the script of a reel by hand
+    const g = parseScript(String(body.text || ''));
+    if (!g || !body.media_id || !body.channel_id) return send(res, 400, { error: 'The script is missing' });
+    saveScript(Number(body.channel_id), String(body.media_id), g, 'dashboard');
+    return send(res, 200, { ok: true, ...g });
+  }
   if (p === '/api/runs' && m === 'GET') return send(res, 200, all(`SELECT r.*, a.name AS automation, a.mode, a.channel_id, ch.brand_id, c.username, cp.status AS capture_status, cp.follow AS capture_follow, (cp.email IS NOT NULL) AS capture_has_email FROM runs r
     JOIN automations a ON a.id=r.automation_id JOIN channels ch ON ch.id=a.channel_id
     LEFT JOIN contacts c ON c.id=r.contact_id LEFT JOIN captures cp ON cp.run_id=r.id

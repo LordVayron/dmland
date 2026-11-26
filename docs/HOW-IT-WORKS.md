@@ -111,6 +111,7 @@ Raising them is at your own risk: Meta's real limit is unknown. If your Page get
 - **Activity**: live log of every comment, reply and DM.
 - **Contacts**: everyone who interacted, with tags; export collected emails as CSV.
 - **Analysis**: funnel (comments → DMs → emails → resource delivered), best times, top reels.
+- **Content report** (from Analysis): reels, hooks and posting times against your typical reel. See [CONTENT-REPORT.md](CONTENT-REPORT.md).
 - **Brands & accounts**: connect Instagram accounts and Facebook Pages; one brand can have several.
 
 ## Project layout
@@ -122,6 +123,9 @@ src/engine.mjs      matching, sending, rate limits, pause logic
 src/capture.mjs     email capture and follow gate conversation
 src/stats.mjs       daily snapshots, insights, uptime
 src/analytics.mjs   numbers behind Home and Analysis
+src/report.mjs      content report (fixed rules, no AI)
+src/script.mjs      reel scripts: hook, length and hook traits
+src/ai-report.mjs   optional AI reading of the report (OpenRouter)
 src/meta.mjs        Meta Graph API client (Instagram)
 src/facebook.mjs    Facebook Page client (Messenger), same shapes as meta.mjs
 src/platform.mjs    picks the client for an account (Instagram or Facebook)

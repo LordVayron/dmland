@@ -29,6 +29,16 @@ export function saveFollowups(ch, conversations) {
   return n;
 }
 
+// Posting time and type of each reel (for "what time should I post?")
+const metaIso = (t) => { const ms = Date.parse(String(t ?? '').replace(/([+-]\d\d)(\d\d)$/, '$1:$2')); return Number.isNaN(ms) ? null : new Date(ms).toISOString(); };
+export function saveMediaInfo(channelId, m) {
+  if (!m?.id) return;
+  run(`INSERT INTO media(channel_id, media_id, published_at, media_type, permalink) VALUES (?,?,?,?,?)
+       ON CONFLICT(channel_id, media_id) DO UPDATE SET published_at=COALESCE(excluded.published_at, published_at),
+       media_type=COALESCE(excluded.media_type, media_type), permalink=COALESCE(excluded.permalink, permalink)`,
+    channelId, String(m.id), metaIso(m.timestamp), m.media_type ?? null, m.permalink ?? null);
+}
+
 // Uptime: one span each time the program starts; it is extended every minute while it stays on.
 let spanId = null;
 export function heartbeat(now = new Date()) {
@@ -54,6 +64,7 @@ export async function collectStats(deps = {}) {
         run(`INSERT INTO media_stats(channel_id, media_id, day, likes, comments) VALUES (?,?,date('now','localtime'),?,?)
              ON CONFLICT(channel_id, media_id, day) DO UPDATE SET likes=excluded.likes, comments=excluded.comments`,
           ch.id, String(m.id), m.like_count ?? null, m.comments_count ?? null);
+        saveMediaInfo(ch.id, m);
       }
       try { // insights of the account and recent reels (if the permission is missing, only warn once)
         const ai = await d.getAccountInsights(ch.host, ch.token, ch.ig_user_id, ch.type);

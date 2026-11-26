@@ -80,7 +80,8 @@ const iso = (ms) => new Date(ms).toISOString();
 const sqlTs = (ms) => iso(ms).replace('T', ' ').slice(0, 19);
 const DAY = 86400e3, NOW = Date.now();
 const startOfDay = (ms) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
-for (const r of REELS) r.pub = Math.min(NOW - 3600e3, startOfDay(NOW - r.age * DAY) + 12 * 3600e3); // reels go out at noon
+const POST_HOURS = [19, 20, 9, 18, 21, 8, 13, 10, 19, 12, 20, 18, 9]; // varied posting times, for the content report
+for (const r of REELS) r.pub = Math.min(NOW - 3600e3, startOfDay(NOW - r.age * DAY) + POST_HOURS[r.i % POST_HOURS.length] * 3600e3);
 
 const FIRST = ['maya', 'leo', 'sofia', 'noah', 'emma', 'liam', 'zoe', 'ethan', 'lucia', 'mateo', 'ava', 'lucas', 'mia', 'oliver', 'nina', 'jack', 'sara', 'diego', 'ivy', 'omar', 'luna', 'felix', 'rosa', 'hugo', 'clara', 'theo', 'nora', 'adam', 'elena', 'ruben'];
 const SUFFIX = ['studio', 'creates', 'daily', 'builds', 'works', 'diary', 'hq', 'moves', 'makes', 'lab'];
@@ -179,6 +180,30 @@ for (const r of REELS) {
     const views = Math.round(viewsTotal * f);
     run(`INSERT INTO media_stats(channel_id, media_id, day, likes, comments, views, reach, saved, shares, interactions, watch_ms) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
       chanIds[r.ch], r.id, ds, Math.round(views * 0.07), Math.round(r.base * 9 * f), views, Math.round(views * 0.78), Math.round(views * 0.022), Math.round(views * 0.015), Math.round(views * 0.11), int(7200, 15500));
+  }
+}
+// posting time and script of each reel (content report); two reels are left without a script on purpose
+const HOOKS = [
+  'Nobody tells you these 5 AI tools are free. I use them every day.',
+  'Stop writing prompts from scratch. Copy mine.',
+  'Three habits are killing your reach and you do not see them.',
+  'Here is my whole morning routine, and why it works.',
+  null,
+  'Want to plan a month of content in one hour?',
+  'Same product, two edits. One sold out.',
+  null,
+  'Before you launch, check these 7 things.',
+  'Pricing is not guessing. Here is the sheet I use.',
+  'Small teams move fast because of one weekly ritual.',
+  'Your first bag is 10% off if you join the club today.',
+  'Make cafe coffee at home with 3 tools.',
+];
+for (const r of REELS) {
+  run('INSERT OR IGNORE INTO media(channel_id, media_id, published_at, media_type, permalink) VALUES (?,?,?,?,?)', chanIds[r.ch], r.id, iso(r.pub), 'VIDEO', `https://www.instagram.com/reel/DEMO${r.i + 1}/`);
+  const hook = HOOKS[r.i];
+  if (hook) {
+    const script = `${hook} ${r.caption} ${'Here is how it works, step by step, with a real example you can copy today. '.repeat(1 + (r.i % 4))}`;
+    run('INSERT OR IGNORE INTO reel_scripts(channel_id, media_id, hook, script, words, source) VALUES (?,?,?,?,?,?)', chanIds[r.ch], r.id, hook, script, script.split(/\s+/).length, 'demo');
   }
 }
 for (const [i, c] of CHANNELS.entries()) {
