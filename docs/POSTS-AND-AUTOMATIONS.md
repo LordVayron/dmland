@@ -18,7 +18,7 @@ When you connect an Instagram account or a Facebook Page, DMLand uses your own M
 4. In step 1 (**Reel**), pick the scope:
    - **One specific reel or post**: choose it from the thumbnails. The picker shows your **24 most recent** posts.
    - **All posts and reels**: the automation answers on your **latest 5 posts**. Older posts are not watched.
-5. In step 2, type the keyword. Then choose what is sent by DM (the link directly, or ask for the email first) and write the public replies.
+5. In step 2, type the keyword. Then choose what is sent by DM (the link directly, or ask for the email first) and write the public replies. On Instagram you can also tick **Ask people to follow me before sending the resource** (see [HOW-IT-WORKS](HOW-IT-WORKS.md#ask-for-a-follow-first-instagram)).
 6. Save and activate it.
 
 Create the automation soon after you publish. Your newest post is always at the top of the list.

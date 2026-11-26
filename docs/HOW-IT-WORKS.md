@@ -12,6 +12,30 @@
    3. tags the contact and records the run.
 4. Optional **email capture**: instead of sending the link right away, DMLand asks for an email.
    When the person replies, it saves the email and sends the resource.
+5. Optional **follow gate** (Instagram): the first DM asks the person to follow you. See below.
+
+## Ask for a follow first (Instagram)
+
+Turn on **Ask people to follow me before sending the resource** in step 3 of an automation. Then:
+
+1. The comment gets a DM that asks for the follow, with an **«I follow you»** quick-reply button. No resource yet.
+2. When the person taps the button (or writes anything), DMLand asks Meta whether they follow the account.
+3. If they follow: they get the resource, or, if the automation asks for an email, DMLand asks for it next.
+4. If they do not follow yet: they get a short notice with the button again, at most twice. After that DMLand only
+   checks quietly each time they write.
+5. If Meta does not let DMLand check: the resource goes out anyway, so nobody who asked is lost.
+
+Good to know:
+
+| Topic | Detail |
+|---|---|
+| Needs a Page token | Meta only answers "does this person follow?" (`is_user_follow_business`) with the token of the **Facebook Page linked to the Instagram account**. Connect that Page in DMLand (Meta connection → Facebook Page); DMLand tries every connected Page and remembers the one that works. Without it, the check fails and people get the resource anyway. |
+| Instagram only | On a Facebook Page there is no API to know who follows the Page: the option is hidden and the resource goes out right away. |
+| The tag | The contact's tag is added when the resource goes out, not when the follow is asked. |
+| How long it waits | Like email capture: 3 days, then the person shows as **Did not follow** in Activity. |
+| If the button is rejected | Meta may not accept the button inside the private reply; then the DM goes as text and asks them to reply «done». |
+| Analytics | The API returns `follow: { asked, followed, rate }`; follow steps do not count as emails. |
+| Meta's rules | Asking for a follow in exchange for a resource is common, but read Meta's current Platform Terms and Instagram's messaging policies for your use. |
 
 ## Safety and limits
 
@@ -95,7 +119,7 @@ Raising them is at your own risk: Meta's real limit is unknown. If your Page get
 src/server.mjs      HTTP server, dashboard API, Basic auth
 src/poller.mjs      reads comments and DM replies on a timer
 src/engine.mjs      matching, sending, rate limits, pause logic
-src/capture.mjs     email capture conversation
+src/capture.mjs     email capture and follow gate conversation
 src/stats.mjs       daily snapshots, insights, uptime
 src/analytics.mjs   numbers behind Home and Analysis
 src/meta.mjs        Meta Graph API client (Instagram)

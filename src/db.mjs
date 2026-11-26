@@ -125,6 +125,9 @@ addCols('automations', [
   ['alt_ask_text', 'TEXT'],                   // version B of the DM that asks for the email (A/B test)
   ['utm', 'INTEGER NOT NULL DEFAULT 0'],      // 1 = add UTM parameters to the links that are sent
   ['viral_until', 'TEXT'],                    // ISO: viral mode (slow pace on Facebook) until this time
+  ['follow_gate', 'INTEGER NOT NULL DEFAULT 0'], // 1 = first ask the person to follow the account (Instagram)
+  ['follow_text', 'TEXT'],                       // first DM: asks for the follow
+  ['follow_retry_text', 'TEXT'],                 // they tapped the button but do not follow yet
 ]);
 db.exec(`
 CREATE TABLE IF NOT EXISTS account_stats (   -- daily account snapshot
@@ -171,6 +174,13 @@ CREATE TABLE IF NOT EXISTS captures (
 );
 CREATE INDEX IF NOT EXISTS idx_captures_status ON captures(status);
 `);
+// Captures: follow=1 if the person went through the follow step; status 'waiting_follow' until we see them as a
+// follower; email_asked=1 if they were asked for their email (all older rows were email captures).
+addCols('captures', [
+  ['follow', 'INTEGER NOT NULL DEFAULT 0'],
+  ['followed_at', 'TEXT'],                       // ISO: when they passed the follow step
+  ['email_asked', 'INTEGER NOT NULL DEFAULT 1'],
+]);
 
 export const all =(sql, ...p) => db.prepare(sql).all(...p);
 export const get = (sql, ...p) => db.prepare(sql).get(...p);

@@ -62,12 +62,13 @@ comment that keyword. Within about a minute DMLand replies and sends the DM.
 | The DM does not arrive | The comment is older than 7 days, or the person's privacy settings block message requests. |
 | Meta pauses sending | You hit the hourly limit. DMLand waits (10 minutes, or 60 if Meta flags spam) and retries. |
 | Account will not connect | The account is not Professional, or is not inside your Business Portfolio. |
+| "Ask for a follow first" always sends the resource without checking | DMLand cannot check followers. Connect the **Facebook Page linked to the Instagram account** in DMLand too (see Facebook Page below); Meta only answers the follower check with that Page's token. The log shows *Could not check whether they follow…* with Meta's error. |
 
 ## Facebook Page
 
-> Connecting and reading a real Page (posts, reels, comments, Messenger) has been checked. Sending a DM
-> to a real commenter through Messenger has not been confirmed yet. If something differs, follow Meta's
-> current docs and please open an issue.
+> Connecting a real Page, reading it (posts, reels, comments, Messenger) and sending DMs to real
+> commenters through Messenger have been checked. If something differs, follow Meta's current docs and
+> please open an issue.
 
 The app from step 1 works for Pages too. In the app dashboard → **Use cases** → **Add use cases**
 (filter **All**), add **Engage with customers on Messenger from Meta** and **Manage everything on your

@@ -23,6 +23,12 @@ export const fill = (tpl, vars) => String(tpl ?? '').replace(/\{\{\s*(\w+)\s*\}\
 // Default texts for "ask for email first" mode. Everything can be edited per automation.
 export const DEFAULT_ASK = 'Hi {{username}}! 👋 To send you the resource, reply to this message with your email.\n\nBy sending it you agree to receive the resource and occasional emails.';
 export const DEFAULT_RETRY = 'Hmm, that does not look like an email 🤔 Please write it like name@example.com';
+// Ask for a follow before the resource (Instagram only). The button is a quick reply: tapping it sends us its text.
+export const FOLLOW_BUTTON = 'I follow you';
+export const DEFAULT_FOLLOW = 'Hi {{username}}! 👋 Follow me and I will send it to you. Once you follow, tap «I follow you» 👇';
+export const DEFAULT_FOLLOW_RETRY = 'I cannot see you among my followers yet 👀 Follow me and tap «I follow you» again.';
+export const FOLLOW_HINT = 'Once you follow me, reply «done» 👇'; // sent as text if Meta does not accept the button
+export const usesFollowGate = (a, channel) => !!a?.follow_gate && (channel?.type || 'instagram') === 'instagram';
 const emailOf = (contact) => json(contact.fields, {}).email || null;
 
 // A/B tests: the random choice can be replaced in automated tests
@@ -67,6 +73,7 @@ export const realSender = (host, token, igUserId, type = 'instagram') => {
     replyToComment: (cid, msg) => api.replyToComment(host, token, cid, msg),
     privateReplyText: (cid, text) => api.privateReplyText(host, token, igUserId, cid, text),
     privateReplyButton: (cid, text, title, url) => api.privateReplyButton(host, token, igUserId, cid, text, title, url),
+    privateReplyQuick: (cid, text, replies) => api.privateReplyQuick(host, token, igUserId, cid, text, replies),
   };
 };
 
@@ -77,6 +84,7 @@ export function drySender(log) {
     replyToComment: async (cid, msg) => { log.push({ action: 'public_reply', comment_id: cid, text: msg }); return { dry: true }; },
     privateReplyText: async (cid, text) => { log.push({ action: 'dm_text', comment_id: cid, text }); return { dry: true }; },
     privateReplyButton: async (cid, text, title, url) => { log.push({ action: 'dm_button', comment_id: cid, text, button: { title, url } }); return { dry: true }; },
+    privateReplyQuick: async (cid, text, replies) => { log.push({ action: 'dm_follow', comment_id: cid, text, quick_replies: replies }); return { dry: true }; },
   };
 }
 
@@ -159,12 +167,13 @@ export async function retryDMs(channel, sender, max = 5) {
 }
 
 // Records that we asked this person for their email: from here on the program watches their DMs.
-function createCapture({ a, channel, contact, comment, runId, resp }) {
+// follow=true: we asked them to follow; their DMs are watched until they tap the button and we see them as a follower.
+function createCapture({ a, channel, contact, comment, runId, resp, follow = false }) {
   const igsid = String(resp?.recipient_id ?? comment.from?.id ?? '');
-  if (!igsid) { logEvent('warn', `Could not identify @${contact.username} to wait for their email`); return; }
+  if (!igsid) { logEvent('warn', `Could not identify @${contact.username} to wait for their ${follow ? 'follow' : 'email'}`); return; }
   const now = new Date().toISOString();
-  run(`INSERT INTO captures(automation_id, channel_id, contact_id, run_id, igsid, username, status, asked_at, last_msg_at) VALUES (?,?,?,?,?,?,?,?,?)`,
-    a.id, channel.id, contact.id, runId, igsid, contact.username ?? null, 'waiting', now, now);
+  run(`INSERT INTO captures(automation_id, channel_id, contact_id, run_id, igsid, username, status, asked_at, last_msg_at, follow, email_asked) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+    a.id, channel.id, contact.id, runId, igsid, contact.username ?? null, follow ? 'waiting_follow' : 'waiting', now, now, follow ? 1 : 0, follow ? 0 : 1);
 }
 
 async function execute({ a, channel, comment, contact, runId, sender, instant }) {
@@ -172,8 +181,10 @@ async function execute({ a, channel, comment, contact, runId, sender, instant })
   try {
     if (!instant && a.delay_seconds > 0) await sleep(a.delay_seconds * 1000);
     // Email mode: if we already have their email (and the automation allows it) the resource goes out directly; otherwise we ask for the email.
-    const knownEmail = a.mode === 'email' && a.skip_known ? emailOf(contact) : null;
-    const askMode = a.mode === 'email' && !knownEmail;
+    // Follow gate: the first DM only asks for the follow; the email (if any) and the resource come later (capture.mjs).
+    const followMode = usesFollowGate(a, channel);
+    const knownEmail = !followMode && a.mode === 'email' && a.skip_known ? emailOf(contact) : null;
+    const askMode = !followMode && a.mode === 'email' && !knownEmail;
     // DM first: if Meta slows it down, no public reply saying "I sent it" is posted.
     // A/B test (only on the DM that asks for the email): half of the people get version A and half version B; which one each got is recorded.
     const abTest = askMode && !!a.alt_ask_text;
@@ -183,7 +194,11 @@ async function execute({ a, channel, comment, contact, runId, sender, instant })
     const buttonUrl = withUtm(a.button_url, a, channel.type);
     let resp;
     try {
-      if (a.button_url && !askMode) {
+      if (followMode) {
+        const ftext = fill(a.follow_text || DEFAULT_FOLLOW, vars);
+        try { resp = await sender.privateReplyQuick(comment.id, ftext, [FOLLOW_BUTTON]); }
+        catch (e) { if (isRateLimit(e) || isBlocked(e) || isPageRestricted(e)) throw e; logEvent('warn', `Button «${FOLLOW_BUTTON}» failed (${e.message}); sending the text with instructions`); resp = await sender.privateReplyText(comment.id, `${ftext}\n\n${FOLLOW_HINT}`); }
+      } else if (a.button_url && !askMode) {
         try { resp = await sender.privateReplyButton(comment.id, text, a.button_title || 'Abrir', buttonUrl); }
         catch (e) { if (isRateLimit(e) || isBlocked(e)) throw e; logEvent('warn', `Button failed (${e.message}); sending text with the link`); resp = await sender.privateReplyText(comment.id, `${text}\n${buttonUrl}`); }
       } else {
@@ -195,7 +210,7 @@ async function execute({ a, channel, comment, contact, runId, sender, instant })
         Object.assign(contact, upsertContact(channel.id, String(resp.recipient_id), contact.username));
         run('UPDATE runs SET contact_id=? WHERE id=?', contact.id, runId);
       }
-      if (askMode && !resp?.dry) createCapture({ a, channel, contact, comment, runId, resp });
+      if ((askMode || followMode) && !resp?.dry) createCapture({ a, channel, contact, comment, runId, resp, follow: followMode });
     } catch (e) {
       const err = metaError(e);
       const tries = get('SELECT dm_retries FROM runs WHERE id=?', runId)?.dm_retries ?? 0;
@@ -236,9 +251,9 @@ async function execute({ a, channel, comment, contact, runId, sender, instant })
       try { await sender.replyToComment(comment.id, msg); run('UPDATE runs SET public_reply_status=? WHERE id=?', 'ok', runId); }
       catch (e) { run('UPDATE runs SET public_reply_status=? WHERE id=?', `error: ${e.message}`, runId); logEvent('error', `Public reply failed: ${e.message}`); }
     }
-    addTag(contact, a.tag);
+    if (!followMode) addTag(contact, a.tag); // with the follow gate, the tag is added when the resource goes out
     run(`UPDATE runs SET status=CASE WHEN status='dry' THEN 'dry' ELSE 'done' END WHERE id=?`, runId);
-    { const who = contact.username || contact.external_id || '—'; logEvent('run', askMode ? `"${a.name}" asked @${who} for their email` : knownEmail ? `"${a.name}" sent the resource directly (email already known) to @${who}` : `"${a.name}" ran for @${who}`); }
+    { const who = contact.username || contact.external_id || '—'; logEvent('run', followMode ? `"${a.name}" asked @${who} to follow` : askMode ? `"${a.name}" asked @${who} for their email` : knownEmail ? `"${a.name}" sent the resource directly (email already known) to @${who}` : `"${a.name}" ran for @${who}`); }
   } catch (e) {
     run('UPDATE runs SET status=?, error=? WHERE id=?', 'error', e.message, runId);
     logEvent('error', e.message);

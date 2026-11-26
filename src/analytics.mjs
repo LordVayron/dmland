@@ -19,18 +19,23 @@ export function analytics({ brand = null, range = 7 } = {}) {
   // ---- funnel ----
   const comments = n1(`SELECT COUNT(*) n ${runsFrom} AND ${inR('r.created_at')}`, ...bp);
   const dms = n1(`SELECT COUNT(*) n ${runsFrom} AND r.status='done' AND ${inR('r.created_at')}`, ...bp);
-  const linkDms = n1(`SELECT COUNT(*) n ${runsFrom} AND r.status='done' AND a.mode='link' AND ${inR('r.created_at')}`, ...bp);
+  // DMs with the resource right away (no email or follow step: those are counted in captures)
+  const linkDms = n1(`SELECT COUNT(*) n ${runsFrom} AND r.status='done' AND a.mode='link' AND NOT EXISTS (SELECT 1 FROM captures x WHERE x.run_id=r.id) AND ${inR('r.created_at')}`, ...bp);
   const errors = n1(`SELECT COUNT(*) n ${runsFrom} AND r.status='error' AND ${inR('r.created_at')}`, ...bp);
-  const asked = n1(`SELECT COUNT(*) n ${capsFrom} AND ${inR('cp.created_at')}`, ...bp);
-  const replied = n1(`SELECT COUNT(*) n ${capsFrom} AND cp.last_msg_at > cp.asked_at AND ${inR('cp.created_at')}`, ...bp);
-  const emails = n1(`SELECT COUNT(*) n ${capsFrom} AND cp.status IN ('got_email','done') AND ${inR('cp.created_at')}`, ...bp);
+  const asked = n1(`SELECT COUNT(*) n ${capsFrom} AND cp.email_asked=1 AND ${inR('cp.created_at')}`, ...bp);
+  const replied = n1(`SELECT COUNT(*) n ${capsFrom} AND cp.email_asked=1 AND cp.last_msg_at > cp.asked_at AND ${inR('cp.created_at')}`, ...bp);
+  // Follow step: how many were asked, how many passed (followed), and of those how many could get the resource right away
+  const followAsked = n1(`SELECT COUNT(*) n ${capsFrom} AND cp.follow=1 AND ${inR('cp.created_at')}`, ...bp);
+  const followed = n1(`SELECT COUNT(*) n ${capsFrom} AND cp.follow=1 AND cp.followed_at IS NOT NULL AND ${inR('cp.created_at')}`, ...bp);
+  const followedLink = n1(`SELECT COUNT(*) n ${capsFrom} AND cp.follow=1 AND cp.followed_at IS NOT NULL AND cp.email_asked=0 AND ${inR('cp.created_at')}`, ...bp);
+  const emails = n1(`SELECT COUNT(*) n ${capsFrom} AND (cp.status IN ('got_email','done') AND cp.email_asked=1) AND ${inR('cp.created_at')}`, ...bp);
   const emailDelivered = n1(`SELECT COUNT(*) n ${capsFrom} AND cp.status='done' AND ${inR('cp.created_at')}`, ...bp);
   const delivered = emailDelivered + linkDms;
   const funnel = [
     { key: 'comments', n: comments },
     { key: 'dms', n: dms, rate: pct(dms, comments) },
     { key: 'emails', n: emails, rate: pct(emails, asked), of: asked },           // of those who received the email question
-    { key: 'delivered', n: delivered, rate: pct(delivered, emails + linkDms) },  // of those who could already receive the resource
+    { key: 'delivered', n: delivered, rate: pct(delivered, emails + linkDms + followedLink) },  // of those who could already receive the resource
   ];
 
   // ---- 30-day series ----
@@ -89,11 +94,11 @@ export function analytics({ brand = null, range = 7 } = {}) {
 
   // ---- best automations ----
   const topAutomations = all(`SELECT a.id, a.name, a.mode, a.keywords, a.media_id, ch.id channel_id, COUNT(*) comments, SUM(r.status='done') dms,
-      SUM(cp.status IN ('got_email','done')) emails ${runsFrom.replace('WHERE', 'LEFT JOIN captures cp ON cp.run_id=r.id WHERE')} AND ${inR('r.created_at')}
+      SUM((cp.status IN ('got_email','done') AND cp.email_asked=1)) emails ${runsFrom.replace('WHERE', 'LEFT JOIN captures cp ON cp.run_id=r.id WHERE')} AND ${inR('r.created_at')}
       GROUP BY a.id ORDER BY dms DESC, comments DESC LIMIT 6`, ...bp).map((x) => ({ ...x, keywords: JSON.parse(x.keywords || '[]'), emails: x.emails ?? 0, dms: x.dms ?? 0 }));
 
   // ---- per reel (with total likes and comments from the daily snapshot) ----
-  const reels = all(`SELECT COALESCE(r.media_id, a.media_id) media_id, ch.id channel_id, COUNT(*) matched, SUM(r.status='done') dms, SUM(cp.status IN ('got_email','done')) emails
+  const reels = all(`SELECT COALESCE(r.media_id, a.media_id) media_id, ch.id channel_id, COUNT(*) matched, SUM(r.status='done') dms, SUM((cp.status IN ('got_email','done') AND cp.email_asked=1)) emails
       ${runsFrom.replace('WHERE', 'LEFT JOIN captures cp ON cp.run_id=r.id WHERE')} AND ${inR('r.created_at')} GROUP BY COALESCE(r.media_id, a.media_id), ch.id ORDER BY dms DESC LIMIT 12`, ...bp)
     .filter((x) => x.media_id).map((x) => {
       const s = all('SELECT likes, comments, views, reach, saved, shares, interactions, watch_ms FROM media_stats WHERE channel_id=? AND media_id=? ORDER BY day DESC LIMIT 1', x.channel_id, String(x.media_id))[0];
@@ -106,7 +111,7 @@ export function analytics({ brand = null, range = 7 } = {}) {
 
   // ---- speed ----
   const lag = all(`SELECT r.comment_at ca, r.dm_at da ${runsFrom} AND r.dm_at IS NOT NULL AND r.comment_at IS NOT NULL AND ${inR('r.created_at')}`, ...bp).map((x) => sec(x.ca, x.da)).filter((x) => x >= 0);
-  const toEmail = all(`SELECT cp.asked_at aa, cp.last_msg_at la ${capsFrom} AND cp.status IN ('got_email','done') AND ${inR('cp.created_at')}`, ...bp).map((x) => sec(x.aa, x.la)).filter((x) => x >= 0);
+  const toEmail = all(`SELECT cp.asked_at aa, cp.last_msg_at la ${capsFrom} AND (cp.status IN ('got_email','done') AND cp.email_asked=1) AND ${inR('cp.created_at')}`, ...bp).map((x) => sec(x.aa, x.la)).filter((x) => x >= 0);
   const speed = { medianLagSec: median(lag), lateCount: lag.filter((x) => x > 300).length, lagSamples: lag.length, medianToEmailSec: median(toEmail), emailSamples: toEmail.length };
 
   // ---- emails ----
@@ -119,7 +124,7 @@ export function analytics({ brand = null, range = 7 } = {}) {
   const pauses = n1(`SELECT COUNT(*) n FROM events WHERE kind='error' AND note LIKE 'Meta paused sending%' AND ${inR('ts')}`);
 
   // ---- A/B tests of the DM that asks for the email ----
-  const abRows = all(`SELECT a.id, a.name, r.variant v, COUNT(*) n, SUM(cp.status IN ('got_email','done')) em
+  const abRows = all(`SELECT a.id, a.name, r.variant v, COUNT(*) n, SUM((cp.status IN ('got_email','done') AND cp.email_asked=1)) em
       ${runsFrom.replace('WHERE', 'LEFT JOIN captures cp ON cp.run_id=r.id WHERE')} AND r.variant IS NOT NULL GROUP BY a.id, r.variant`, ...bp);
   const ab = [...new Set(abRows.map((x) => x.id))].map((id) => {
     const g = (v) => { const x = abRows.find((y) => y.id === id && y.v === v); return { n: x?.n ?? 0, emails: x?.em ?? 0, rate: pct(x?.em ?? 0, x?.n ?? 0) }; };
@@ -142,7 +147,7 @@ export function analytics({ brand = null, range = 7 } = {}) {
   const toIso = (t) => (t && !String(t).includes('T') ? String(t).replace(' ', 'T') + 'Z' : t);
   let got = 0, wrote = 0;
   for (const x of recips) {
-    if (x.m === 'email' && x.cs !== 'done') continue;            // has not received the resource yet
+    if (x.cs && x.cs !== 'done') continue;                         // has not received the resource yet (asked for email or follow)
     if (!x.t) continue;
     got++; const last = fu.get(`${x.c}|${x.g}`);
     if (last && Date.parse(last) > Date.parse(toIso(x.t)) + 5000) wrote++;
@@ -169,6 +174,7 @@ export function analytics({ brand = null, range = 7 } = {}) {
     followups, uptime, insights,
     range: days === 1 ? 'today' : String(days), days, generatedAt: new Date().toISOString(),
     totals: { comments, dms, asked, replied, emails, delivered, errors },
+    follow: { asked: followAsked, followed, rate: pct(followed, followAsked) },
     funnel, series30, listGrowth: { total: totalEmails, week, cumulative },
     heatmap: { grid, peak: peak ? { dow: peak.dow, hour: peak.hr, n: peak.n } : null, peakHours },
     outcomes, brands, topAutomations, reels, speed,

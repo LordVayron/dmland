@@ -95,3 +95,15 @@ export const privateReplyButton = (host, token, igUserId, commentId, text, title
       },
     },
   });
+
+// ---- Ask for a follow before the resource (Instagram) ----
+// Quick-reply button: when tapped, the person sends us a message with that text (which opens the 24 h window).
+const quick = (replies) => replies.map((title) => ({ content_type: 'text', title: String(title).slice(0, 20), payload: 'DMLAND_FOLLOW_CHECK' }));
+export const privateReplyQuick = (host, token, igUserId, commentId, text, replies) =>
+  call(host, 'POST', `/${igUserId}/messages`, token, { recipient: { comment_id: commentId }, message: { text, quick_replies: quick(replies) } });
+export const sendQuick = (host, token, igId, recipientId, text, replies) =>
+  call(host, 'POST', `/${igId}/messages`, token, { recipient: { id: recipientId }, message: { text, quick_replies: quick(replies) } });
+// Does this person follow the account? Meta only answers after the person has written to us, and only with the
+// token of the Facebook Page linked to the Instagram account (a system user token gets error #100).
+export const isFollower = async (host, token, igsid) =>
+  (await call(host, 'GET', `/${encodeURIComponent(igsid)}?fields=is_user_follow_business`, token)).is_user_follow_business === true;

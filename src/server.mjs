@@ -140,14 +140,14 @@ async function api(req, res, url) {
     if (m === 'GET') return send(res, 200, all(`SELECT a.*, (SELECT COUNT(*) FROM runs r WHERE r.automation_id=a.id AND r.status='done') AS sent
       FROM automations a ORDER BY a.id DESC`).map(aut));
     if (m === 'POST') {
-      r = run(`INSERT INTO automations(channel_id,name,active,media_id,match_mode,keywords,exclude,public_replies,dm_text,button_title,button_url,tag,delay_seconds,mode,ask_text,retry_text,skip_known,alt_ask_text,utm,since)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))`, ...automationFields(body));
+      r = run(`INSERT INTO automations(channel_id,name,active,media_id,match_mode,keywords,exclude,public_replies,dm_text,button_title,button_url,tag,delay_seconds,mode,ask_text,retry_text,skip_known,alt_ask_text,utm,follow_gate,follow_text,follow_retry_text,since)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))`, ...automationFields(body));
       return send(res, 200, { id: Number(r.lastInsertRowid) });
     }
   }
   if ((mt = p.match(/^\/api\/automations\/(\d+)$/))) {
     if (m === 'PUT') {
-      run(`UPDATE automations SET channel_id=?,name=?,active=?,media_id=?,match_mode=?,keywords=?,exclude=?,public_replies=?,dm_text=?,button_title=?,button_url=?,tag=?,delay_seconds=?,mode=?,ask_text=?,retry_text=?,skip_known=?,alt_ask_text=?,utm=? WHERE id=?`,
+      run(`UPDATE automations SET channel_id=?,name=?,active=?,media_id=?,match_mode=?,keywords=?,exclude=?,public_replies=?,dm_text=?,button_title=?,button_url=?,tag=?,delay_seconds=?,mode=?,ask_text=?,retry_text=?,skip_known=?,alt_ask_text=?,utm=?,follow_gate=?,follow_text=?,follow_retry_text=? WHERE id=?`,
         ...automationFields(body), mt[1]);
       return send(res, 200, { ok: true });
     }
@@ -161,7 +161,7 @@ async function api(req, res, url) {
 
   if (p === '/api/poller' && m === 'GET') return send(res, 200, poller.getStatus());
   if (p === '/api/analytics' && m === 'GET') return send(res, 200, analytics({ brand: url.searchParams.get('brand'), range: url.searchParams.get('range') || 7 }));
-  if (p === '/api/runs' && m === 'GET') return send(res, 200, all(`SELECT r.*, a.name AS automation, a.mode, a.channel_id, ch.brand_id, c.username, cp.status AS capture_status FROM runs r
+  if (p === '/api/runs' && m === 'GET') return send(res, 200, all(`SELECT r.*, a.name AS automation, a.mode, a.channel_id, ch.brand_id, c.username, cp.status AS capture_status, cp.follow AS capture_follow, (cp.email IS NOT NULL) AS capture_has_email FROM runs r
     JOIN automations a ON a.id=r.automation_id JOIN channels ch ON ch.id=a.channel_id
     LEFT JOIN contacts c ON c.id=r.contact_id LEFT JOIN captures cp ON cp.run_id=r.id
     WHERE r.status != 'dry' ORDER BY r.id DESC LIMIT 200`));
