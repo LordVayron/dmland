@@ -19,9 +19,10 @@ It runs on your own computer with **Node 24 and no npm dependencies**. Your toke
 
 - **Comment → public reply + DM** on any reel or post, or on all of them. Keyword rules: contains, whole word, exact, or any comment.
 - **Ask for email first.** Optional mode: DMLand asks for an email, reads the answer, saves it and then sends the resource. Edit the consent line, export emails as CSV.
+- **Ask for a follow first** (Instagram). Optional: the first DM asks people to follow you, with an «I follow you» button. When they tap it, DMLand checks that they follow you and then sends the resource (or asks for their email). Needs the Facebook Page linked to the Instagram account connected in DMLand. See [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md#ask-for-a-follow-first-instagram).
 - **A/B test** two versions of the message that asks for the email and see which wins.
 - **UTM links.** Add campaign parameters to every link you send.
-- **Instagram and Facebook Pages.** Connect Instagram Professional accounts, Facebook Pages (DMs through Messenger), or both. Facebook Page support is new: reading a real Page is checked, a Messenger DM to a real commenter is not confirmed yet.
+- **Instagram and Facebook Pages.** Connect Instagram Professional accounts, Facebook Pages (DMs through Messenger), or both. Reading a real Page and sending Messenger DMs to real commenters are both checked. Pages get a slower sending pace (see Limits).
 - **Multi-brand.** Connect several accounts and group them by brand.
 - **Safe sending.** Stays under Meta's hourly limit, sends the DM before the public reply, never answers a comment twice, and pauses and retries if Meta slows you down.
 - **Analytics.** Reels with views and DMs, funnel, best times to post, email list growth, speed to DM, uptime, and people who wrote back.

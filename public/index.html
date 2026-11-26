@@ -166,6 +166,7 @@
   .ig-c b { font-weight: 700; } .ig-c small { display: block; color: #8a8a8f; margin-top: 2px; }
   .dm { margin-top: auto; background: #fff; border-top-left-radius: 22px; border-top-right-radius: 22px; box-shadow: 0 -8px 24px rgba(0,0,0,.12); padding: 12px 14px 14px; }
   .dm .hd { display: flex; align-items: center; gap: 10px; font-weight: 700; margin-bottom: 12px; } .dm .hd small { display: block; font-weight: 500; color: #8a8a8f; }
+  .qr { display: inline-block; margin: -2px 0 10px; border: 1px solid #3797f0; color: #3797f0; border-radius: 999px; padding: 6px 12px; font-weight: 600; font-size: 13px; }
   .bubble { background: #efeff1; border-radius: 18px; padding: 10px 13px; max-width: 92%; white-space: pre-wrap; word-break: break-word; }
   [hidden] { display: none !important; }
   .seg { display: inline-flex; padding: 4px; gap: 4px; border-radius: 999px; background: rgba(0,0,0,.3); border: 1px solid var(--line); flex-wrap: wrap; }
@@ -394,7 +395,8 @@ const initials = (u) => String(u || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2
 const AVG = ['var(--g-amber)', 'var(--g-violet)', 'var(--g-rose)', 'var(--g-blue)'];
 const avatar = (u) => `<span class="av" style="background:${AVG[(String(u).length + (String(u).charCodeAt(0) || 0)) % 4]}">${esc(initials(u))}</span>`;
 const CAP = { waiting: '<span class="st warn">Waiting for email</span>', got_email: '<span class="st warn">Sending resource</span>', done: '<span class="st ok">Email captured</span>', expired: '<span class="st mute">No email</span>', failed: '<span class="st bad">Couldn\'t send</span>' };
-const stChip = (r) => r.status === 'error' ? '<span class="st bad">Error</span>' : r.capture_status ? CAP[r.capture_status] : r.status === 'done' ? '<span class="st ok">Sent</span>' : r.status === 'pending' ? '<span class="st warn">Waiting</span>' : r.status === 'retry' ? '<span class="st warn">Retrying</span>' : '<span class="st bad">Error</span>';
+const CAP_FOLLOW = { waiting_follow: '<span class="st warn">Waiting for follow</span>', done: '<span class="st ok">Followed and got it</span>', expired: '<span class="st mute">Did not follow</span>' };
+const stChip = (r) => r.status === 'error' ? '<span class="st bad">Error</span>' : r.capture_status ? ((r.capture_follow && !r.capture_has_email && CAP_FOLLOW[r.capture_status]) || CAP[r.capture_status] || CAP_FOLLOW[r.capture_status]) : r.status === 'done' ? '<span class="st ok">Sent</span>' : r.status === 'pending' ? '<span class="st warn">Waiting</span>' : r.status === 'retry' ? '<span class="st warn">Retrying</span>' : '<span class="st bad">Error</span>';
 
 async function loadBase() {
   [S.brands, S.channels, S.autos, S.poller] = await Promise.all([api('/api/brands'), api('/api/channels'), api('/api/automations'), api('/api/poller')]);
@@ -594,7 +596,7 @@ async function viewInicio(opts = {}) {
   const bk = Array.from({ length: 12 }, (_, i) => hrs[i * 2] + hrs[i * 2 + 1]), bm = Math.max(1, ...bk), ph = a.heatmap.peakHours;
   const peakLine = ph ? T`People comment most between ${hour12(ph.from)} and ${hour12(ph.to)}` : T('Not enough comments yet to see when people comment');
   const rate = f[2].rate, tenth = rate == null ? null : Math.round(rate / 10);
-  const waiting = runs.filter((r) => inScope(r.brand_id) && r.capture_status === 'waiting');
+  const waiting = runs.filter((r) => inScope(r.brand_id) && (r.capture_status === 'waiting' || r.capture_status === 'waiting_follow'));
   const withAuto = new Set(S.autos.map((x) => x.media_id).filter(Boolean));
   const free = [];
   for (const c of scoped) for (const m of Object.values(S.media[c.id] || {})) if (!withAuto.has(m.id)) free.push([c.id, m]);
@@ -736,7 +738,7 @@ function paintAutoCards() {
     const t = a.media_id ? thumbOf(a.channel_id, a.media_id) : '';
     return `<div class="acard c${i % 3} rise" style="--i:${i + 2}" data-id="${a.id}">
       <div class="thumb">${t ? `<img src="${esc(t)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : ''}<div class="play"><span>${a.media_id ? ic('play') : ic('bolt')}</span></div></div>
-      <div class="info"><h3 translate="no">${esc(a.name)}</h3><div>${a.match_mode === 'any' ? '<span class="chip">any comment</span>' : a.keywords.slice(0, 4).map((k) => `<span class="chip" translate="no">${esc(k)}</span>`).join('')}${a.mode === 'email' ? '<span class="chip" style="background:rgba(244,177,63,.28);border-color:rgba(244,177,63,.5)">✉ asks for email</span>' : ''}${a.source_id ? '<span class="chip" style="background:rgba(88,176,245,.28);border-color:rgba(88,176,245,.5)" title="Created automatically from the pending inbox">⚡ automatic</span>' : ''}${a.alt_ask_text ? '<span class="chip" title="A/B test active" translate="no">A/B</span>' : ''}${a.viral_until && Date.parse(a.viral_until) > Date.now() ? '<span class="chip" style="background:rgba(245,99,88,.28);border-color:rgba(245,99,88,.5)" title="Lots of comments: this automation sends 1 DM per minute and 30 per hour for 24 h">🔥 viral · slow pace</span>' : ''}</div>
+      <div class="info"><h3 translate="no">${esc(a.name)}</h3><div>${a.match_mode === 'any' ? '<span class="chip">any comment</span>' : a.keywords.slice(0, 4).map((k) => `<span class="chip" translate="no">${esc(k)}</span>`).join('')}${a.follow_gate ? '<span class="chip" style="background:rgba(155,120,245,.28);border-color:rgba(155,120,245,.5)" title="Asks them to follow you first">👤 asks to follow</span>' : ''}${a.mode === 'email' ? '<span class="chip" style="background:rgba(244,177,63,.28);border-color:rgba(244,177,63,.5)">✉ asks for email</span>' : ''}${a.source_id ? '<span class="chip" style="background:rgba(88,176,245,.28);border-color:rgba(88,176,245,.5)" title="Created automatically from the pending inbox">⚡ automatic</span>' : ''}${a.alt_ask_text ? '<span class="chip" title="A/B test active" translate="no">A/B</span>' : ''}${a.viral_until && Date.parse(a.viral_until) > Date.now() ? '<span class="chip" style="background:rgba(245,99,88,.28);border-color:rgba(245,99,88,.5)" title="Lots of comments: this automation sends 1 DM per minute and 30 per hour for 24 h">🔥 viral · slow pace</span>' : ''}</div>
       <div class="mute" style="margin-bottom:8px">${a.media_id ? 'A specific reel' : 'All posts and reels'}</div>
       <div class="meta"><span>${ic('send')}${a.sent} sent</span>
         <span style="display:flex;align-items:center;gap:8px">${a.active ? '' : '<span class="mute">Paused</span>'}<button class="tgl ${a.active ? 'on' : ''}" data-t="${a.id}" aria-label="${a.active ? 'Pause' : 'Activate'}" aria-pressed="${!!a.active}"></button></span></div></div></div>`;
@@ -753,7 +755,9 @@ function paintAutoCards() {
 /* ---------- Editor ---------- */
 const DEFAULT_ASK = 'Hi {{username}}! 👋 To send you the resource, reply to this message with your email.\n\nBy sending it you agree to receive the resource and occasional emails.';
 const DEFAULT_RETRY = 'Hmm, that does not look like an email 🤔 Please write it like name@example.com';
-const blank = () => ({ id: null, mode: 'link', ask_text: '', retry_text: '', skip_known: 1, alt_ask_text: '', utm: 0, name: '', channel_id: scopeChannels()[0]?.id ?? S.channels[0]?.id, media_id: '', match_mode: 'contains', keywords: [], exclude: [], public_replies: ['¡Te lo mandé al DM! 📩', '¡Ya te lo mandé por DM! 📩', '¡Revisa tu DM, ahí te lo mandé! 📩'], dm_text: 'Hola {{username}}, aquí tienes lo que pediste 👇', button_title: '', button_url: '', tag: '', delay_seconds: 3, active: 1 });
+const DEFAULT_FOLLOW = 'Hi {{username}}! 👋 Follow me and I will send it to you. Once you follow, tap «I follow you» 👇';
+const DEFAULT_FOLLOW_RETRY = 'I cannot see you among my followers yet 👀 Follow me and tap «I follow you» again.';
+const blank = () => ({ id: null, mode: 'link', ask_text: '', retry_text: '', skip_known: 1, alt_ask_text: '', utm: 0, follow_gate: 0, follow_text: '', follow_retry_text: '', name: '', channel_id: scopeChannels()[0]?.id ?? S.channels[0]?.id, media_id: '', match_mode: 'contains', keywords: [], exclude: [], public_replies: ['¡Te lo mandé al DM! 📩', '¡Ya te lo mandé por DM! 📩', '¡Revisa tu DM, ahí te lo mandé! 📩'], dm_text: 'Hola {{username}}, aquí tienes lo que pediste 👇', button_title: '', button_url: '', tag: '', delay_seconds: 3, active: 1 });
 function newAuto() { if (!S.channels.length) return toast('Connect an account first', 'bad'); S.editing = blank(); viewEditor(); }
 function editAuto(id) { S.editing = structuredClone(S.autos.find((a) => a.id === id)); viewEditor(); }
 async function viewEditor() {
@@ -769,6 +773,11 @@ async function viewEditor() {
       <div class="step"><div class="lbl"><span class="n">2</span>Keyword</div>
         <div class="chips" id="chips"></div><div class="mute" style="margin-top:6px">Type and press Enter. Capitalization and accents don\'t matter.</div></div>
       <div class="step"><div class="lbl"><span class="n">3</span>What is sent by DM</div>
+        <div id="followWrap" style="margin-bottom:14px"><label style="display:flex;gap:10px;align-items:center;cursor:pointer"><input type="checkbox" id="f_follow" ${a.follow_gate ? 'checked' : ''} style="width:auto"> Ask people to follow me before sending the resource</label>
+          <div id="followBox" style="margin-top:10px" ${a.follow_gate ? '' : 'hidden'}><label class="f" for="f_ftext">First DM: asks them to follow you</label><textarea id="f_ftext" rows="3">${esc(a.follow_text || T(DEFAULT_FOLLOW))}</textarea>
+            <div class="mute" style="margin:6px 0 12px">Name what they will get. It has an «I follow you» button: when they tap it, DMLand checks whether they follow you and then the flow below continues. If Meta does not allow the check, they get the resource anyway.</div>
+            <label class="f" for="f_fretry">If they tap «I follow you» but do not follow yet</label><input type="text" id="f_fretry" value="${esc(a.follow_retry_text || T(DEFAULT_FOLLOW_RETRY))}"></div></div>
+        <div id="followFb" class="mute" style="margin-bottom:14px" hidden>Asking for a follow only works on Instagram. On a Facebook Page the resource goes out right away.</div>
         <div class="seg" id="seg" role="tablist"><button type="button" data-m="link" role="tab">Send the link directly</button><button type="button" data-m="email" role="tab">Ask for email first</button></div>
         <div id="askBox" style="margin-top:14px"><label class="f" for="f_ask">First DM: asks for the email</label><textarea id="f_ask" rows="4">${esc(a.ask_text || T(DEFAULT_ASK))}</textarea>
           <div class="mute" style="margin:6px 0 14px">The person replies with their email and then receives the resource. The last sentence explains what you will do with their email; you can change it.</div>
@@ -801,7 +810,7 @@ function bindEditor() {
     g('dmLbl').textContent = em ? 'DM with the resource: sent when the person sends their email' : 'DM message';
     g('seg').querySelectorAll('button').forEach((b) => { const on = b.dataset.m === a.mode; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
   };
-  const readForm = () => { a.alt_ask_text = g('f_ab').checked ? g('f_alt').value : ''; a.utm = g('f_utm').checked ? 1 : 0; a.ask_text = g('f_ask').value; a.retry_text = g('f_retry').value; a.skip_known = g('f_skip').checked ? 1 : 0; a.name = g('f_name').value; a.dm_text = g('f_dm').value; a.button_url = g('f_bu').value.trim(); a.button_title = g('f_bt').value; a.public_replies = g('f_pub').value.split('\n').map((s) => s.trim()).filter(Boolean);
+  const readForm = () => { a.follow_gate = g('f_follow').checked ? 1 : 0; a.follow_text = g('f_ftext').value; a.follow_retry_text = g('f_fretry').value; a.alt_ask_text = g('f_ab').checked ? g('f_alt').value : ''; a.utm = g('f_utm').checked ? 1 : 0; a.ask_text = g('f_ask').value; a.retry_text = g('f_retry').value; a.skip_known = g('f_skip').checked ? 1 : 0; a.name = g('f_name').value; a.dm_text = g('f_dm').value; a.button_url = g('f_bu').value.trim(); a.button_title = g('f_bt').value; a.public_replies = g('f_pub').value.split('\n').map((s) => s.trim()).filter(Boolean);
     a.match_mode = g('f_mode').value; a.exclude = g('f_ex').value.split(',').map((s) => s.trim()).filter(Boolean); a.tag = g('f_tag').value.trim(); a.delay_seconds = g('f_delay').value; if (g('f_ch')) a.channel_id = Number(g('f_ch').value); };
   const paintChips = () => { g('chips').innerHTML = a.keywords.map((k, i) => `<span class="chip" translate="no">${esc(k)} <b data-x="${i}" role="button" aria-label="Remove ${esc(k)}">×</b></span>`).join('') + '<input type="text" id="kw" placeholder="Add word…" aria-label="Add keyword">';
     const inp = g('kw'); const add = () => { const v = inp.value.replace(/,/g, '').trim(); if (v && !a.keywords.includes(v)) a.keywords.push(v); inp.value = ''; paintChips(); paintPhone(); g('kw').focus(); };
@@ -820,18 +829,22 @@ function bindEditor() {
     readForm(); const ch = S.channels.find((c) => c.id === a.channel_id), me = ch?.username || 'tu_cuenta', kw = a.keywords[0] ? a.keywords[0][0].toUpperCase() + a.keywords[0].slice(1) : 'Quiero el link';
     const t = a.media_id ? thumbOf(a.channel_id, a.media_id) : '', dm = a.dm_text.replace(/\{\{\s*username\s*\}\}/g, T('user')).replace(/\{\{\s*first_name\s*\}\}/g, T('user')), pub = (a.public_replies[0] || '').replace(/\{\{\s*username\s*\}\}/g, T('user'));
     const ask = (a.ask_text || '').replace(/\{\{\s*(username|first_name)\s*\}\}/g, T('user'));
+    const isFb = ch?.type === 'facebook'; g('followWrap').hidden = isFb; g('followFb').hidden = !isFb;
+    const fol = a.follow_gate && !isFb ? (a.follow_text || T(DEFAULT_FOLLOW)).replace(/\{\{\s*(username|first_name)\s*\}\}/g, T('user')) : '';
     let host = ''; try { host = new URL(a.button_url).host; } catch {}
     g('phone').innerHTML = `<div class="phone"><div class="screen"><div class="ig-top"><span>${ch?.type === 'facebook' ? 'Facebook' : 'Instagram'}</span><span style="font-weight:600;font-size:13px;color:#8a8a8f">${T('Comments')}</span></div>
       <div class="ig-post" style="${t ? `background-image:url('${esc(t)}')` : ''}"></div>
       <div class="ig-c"><span class="a" style="background:var(--g-rose)">US</span><div><b>${T('user')}</b> ${esc(kw)}<small>2 h · ${T('Reply')}</small></div></div>
       ${pub ? `<div class="ig-c r"><span class="a" style="background:var(--g-violet)">${esc(initials(me))}</span><div><b>${esc(me)}</b> ${esc(pub)}<small>2 h · ${T('Reply')}</small></div></div>` : '<div style="background:#fff;height:12px"></div>'}
       <div class="dm"><div class="hd"><span class="av" style="background:var(--g-violet);width:34px;height:34px">${esc(initials(me))}</span><div>${esc(me)}<small>${T('Active now')}</small></div></div>
+        ${fol ? `<div class="bubble">${esc(fol)}</div><span class="qr">${T('I follow you')}</span><div class="bubble me">${T('I follow you')}</div>` : ''}
         ${a.mode === 'email' ? `<div class="bubble">${esc(ask) || '…'}</div><div class="bubble me">${T('youremail@example.com')}</div>` : ''}
         <div class="bubble">${esc(dm) || '…'}</div>${host ? `<div class="linkcard">${esc(a.button_title || 'Abrir')}<small>${esc(host)}</small></div>` : ''}</div></div></div>`;
   };
   g('seg').querySelectorAll('button').forEach((b) => b.onclick = () => { readForm(); a.mode = b.dataset.m; if (a.mode === 'email' && !g('f_ask').value.trim()) g('f_ask').value = T(DEFAULT_ASK); syncMode(); paintPhone(); });
   g('f_skip').onchange = paintPhone;
   g('f_ab').onchange = () => { g('altBox').hidden = !g('f_ab').checked; };
+  g('f_follow').onchange = () => { g('followBox').hidden = !g('f_follow').checked; paintPhone(); };
   g('f_scope').onchange = () => { if (g('f_scope').value === 'all') a.media_id = ''; paintReels(); paintPhone(); };
   if (g('f_ch')) g('f_ch').onchange = () => { a.channel_id = Number(g('f_ch').value); a.media_id = ''; paintReels(); paintPhone(); };
   ['f_name', 'f_dm', 'f_bu', 'f_bt', 'f_pub', 'f_ask', 'f_retry'].forEach((id) => g(id).addEventListener('input', paintPhone));
@@ -841,6 +854,7 @@ function bindEditor() {
     if (g('f_scope').value === 'one' && !b.media_id) return toast('Pick a reel, or switch to "All posts and reels"', 'bad');
     if (b.match_mode !== 'any' && !b.keywords.length) return toast('Add at least one keyword', 'bad');
     if (b.mode === 'email' && !String(b.ask_text || '').trim()) return toast('Write the first DM that asks for the email', 'bad');
+    if (b.follow_gate && !String(b.follow_text || '').trim()) b.follow_text = T(DEFAULT_FOLLOW);
     if (!b.dm_text.trim()) return toast('Write the message with the resource', 'bad');
     if (!b.name) b.name = (b.keywords[0] ? `Palabra "${b.keywords[0]}"` : 'Automation') + (b.media_id ? '' : ' · todos');
     try { await api(b.id ? `/api/automations/${b.id}` : '/api/automations', b.id ? 'PUT' : 'POST', b); toast('Saved'); S.editing = null; await loadBase(); render(); }
@@ -849,7 +863,7 @@ function bindEditor() {
   if (a.id) {
     g('del').onclick = async () => { if (await confirmBox('Delete this automation?', 'Its run history is deleted too. This cannot be undone.')) { await api(`/api/automations/${a.id}`, 'DELETE'); toast('Deleted'); S.editing = null; await loadBase(); render(); } };
     g('sim').onclick = async () => { readForm(); try { const r = await api('/api/simulate', 'POST', { channel_id: a.channel_id, text: a.keywords[0] || 'hola', media_id: a.media_id || undefined });
-      g('simout').innerHTML = `<div class="simout">${r.matched.length ? '<span>It triggered with a test comment</span> ("<span translate="no">' + esc(a.keywords[0] || 'hola') + '</span>"). <span>This is what would be sent:</span>\n\n' + r.actions.map((x) => `• <span>${x.action === 'public_reply' ? 'Public reply' : 'DM'}</span>: <span translate="no">${esc(x.text)}</span>${x.button ? ` [<span>button</span> <span translate="no">${esc(x.button.title)} → ${esc(x.button.url)}</span>]` : ''}`).join('\n') + '\n\n<span>Nothing was sent to Instagram. The test uses what is already saved.</span>' : '<span>It did not trigger with that test comment. Save your changes and test again.</span>'}</div>`; } catch (e) { toast(e.message, 'bad'); } };
+      g('simout').innerHTML = `<div class="simout">${r.matched.length ? '<span>It triggered with a test comment</span> ("<span translate="no">' + esc(a.keywords[0] || 'hola') + '</span>"). <span>This is what would be sent:</span>\n\n' + r.actions.map((x) => `• <span>${x.action === 'public_reply' ? 'Public reply' : x.action === 'dm_follow' ? 'DM that asks for the follow' : 'DM'}</span>: <span translate="no">${esc(x.text)}</span>${x.button ? ` [<span>button</span> <span translate="no">${esc(x.button.title)} → ${esc(x.button.url)}</span>]` : ''}`).join('\n') + '\n\n<span>Nothing was sent to Instagram. The test uses what is already saved.</span>' : '<span>It did not trigger with that test comment. Save your changes and test again.</span>'}</div>`; } catch (e) { toast(e.message, 'bad'); } };
   }
   syncMode(); paintChips(); paintReels(); paintPhone();
 }
@@ -860,7 +874,7 @@ async function viewActividad(opts = {}) {
   if (!S.channels.length) return $('#main').innerHTML = header('Activity') + noAccount();
   const [runs, ev] = await Promise.all([api('/api/runs'), api('/api/events')]);
   const rs = runs.filter((r) => inScope(r.brand_id)); const f = S.afilter || 'all';
-  const waiting = (r) => r.status === 'pending' || r.status === 'retry' || r.capture_status === 'waiting' || r.capture_status === 'got_email';
+  const waiting = (r) => r.status === 'pending' || r.status === 'retry' || r.capture_status === 'waiting' || r.capture_status === 'got_email' || r.capture_status === 'waiting_follow';
   const shown = rs.filter((r) => f === 'all' || (f === 'ok' ? r.status === 'done' && !waiting(r) : f === 'bad' ? r.status === 'error' || r.capture_status === 'failed' : waiting(r)));
   if (quiet && S.tab !== 'actividad') return;
   const html = header('Activity') + `

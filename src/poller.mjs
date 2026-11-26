@@ -168,7 +168,8 @@ export function startPoller(intervalSec = 60) {
   status.intervalSec = intervalSec;
   // DM reading for email capture: every 30 s, and it only works if someone is waiting (otherwise it queries nothing)
   const dmTick = async () => {
-    if (dmRunning || (!captureCounts().waiting && !captureCounts().gotEmail)) return;
+    const cc = captureCounts();
+    if (dmRunning || (!cc.waiting && !cc.gotEmail && !cc.waitingFollow)) return;
     dmRunning = true;
     try { await pollDMs(); } catch (e) { logEvent('error', `Reading DMs failed: ${e.message}`); } finally { dmRunning = false; }
   };

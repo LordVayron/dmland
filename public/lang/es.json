@@ -338,7 +338,21 @@
   "Version B of the DM that asks for the email": "La versión B del DM que pide el email",
   "Retrying": "Reintentando",
   "🔥 viral · slow pace": "🔥 viral · ritmo lento",
-  "Lots of comments: this automation sends 1 DM per minute and 30 per hour for 24 h": "Muchos comentarios: esta automatización manda 1 DM por minuto y 30 por hora durante 24 h"
+  "Lots of comments: this automation sends 1 DM per minute and 30 per hour for 24 h": "Muchos comentarios: esta automatización manda 1 DM por minuto y 30 por hora durante 24 h",
+  "Waiting for follow": "Esperando follow",
+  "Followed and got it": "Siguió y recibió",
+  "Did not follow": "No siguió",
+  "👤 asks to follow": "👤 pide follow",
+  "Asks them to follow you first": "Primero pide que te sigan",
+  "Ask people to follow me before sending the resource": "Pedir que me sigan antes de mandar el recurso",
+  "First DM: asks them to follow you": "Primer DM: pide que te sigan",
+  "Name what they will get. It has an «I follow you» button: when they tap it, DMLand checks whether they follow you and then the flow below continues. If Meta does not allow the check, they get the resource anyway.": "Nombra lo que van a recibir. Lleva un botón «Ya te sigo»: al tocarlo, DMLand revisa si ya te siguen y entonces sigue el flujo de abajo. Si Meta no deja revisarlo, reciben el recurso igual.",
+  "If they tap «I follow you» but do not follow yet": "Si toca «Ya te sigo» pero aún no te sigue",
+  "Asking for a follow only works on Instagram. On a Facebook Page the resource goes out right away.": "Pedir follow solo funciona en Instagram. En una Página de Facebook el recurso va directo.",
+  "I follow you": "Ya te sigo",
+  "DM that asks for the follow": "DM que pide el follow",
+  "Hi {{username}}! 👋 Follow me and I will send it to you. Once you follow, tap «I follow you» 👇": "¡Hola {{username}}! 👋 Sígueme y te lo mando. Cuando me sigas, toca «Ya te sigo» 👇",
+  "I cannot see you among my followers yet 👀 Follow me and tap «I follow you» again.": "Todavía no te veo entre mis seguidores 👀 Sígueme y toca «Ya te sigo» otra vez."
  },
  "patterns": [
   [
@@ -494,6 +508,34 @@
   [
    "^🔥 \"(.+)\" went viral \\((\\d+) comments in the last hour, (\\d+) waiting\\): slowing to (\\d+) DM per minute and (\\d+) per hour for (\\d+) h$",
    "🔥 \"$1\" se volvió viral ($2 comentarios en la última hora, $3 esperando): baja a $4 DM por minuto y $5 por hora durante $6 h"
+  ],
+  [
+   "^\"(.+)\" asked @(.+) to follow$",
+   "\"$1\" pidió el follow a @$2"
+  ],
+  [
+   "^Followed us and got the resource: @(.+) \\(\"(.+)\"\\)$",
+   "Nos siguió y recibió el recurso: @$1 (\"$2\")"
+  ],
+  [
+   "^Got the resource \\(the follow could not be checked\\): @(.+) \\(\"(.+)\"\\)$",
+   "Recibió el recurso (no se pudo revisar el follow): @$1 (\"$2\")"
+  ],
+  [
+   "^@(.+) follows us: asked for the email \\(\"(.+)\"\\)$",
+   "@$1 ya nos sigue: le pedí el email (\"$2\")"
+  ],
+  [
+   "^@(.+) replied: asked for the email \\(\"(.+)\"\\)$",
+   "@$1 respondió: le pedí el email (\"$2\")"
+  ],
+  [
+   "^Could not check whether they follow @(.+) \\((.+)\\)\\. Sending the resource anyway\\.$",
+   "No pude revisar si sigue a @$1 ($2). Mando el recurso igual."
+  ],
+  [
+   "^Button «(.+)» failed \\((.+)\\); sending the text with instructions$",
+   "Botón «$1» falló ($2); envío el texto con instrucciones"
   ]
  ]
 }
