@@ -128,4 +128,17 @@ await Promise.all(l.map((x) => x.done));
 assert.equal(sent[0][2], 'direct link');
 assert.equal(all('SELECT * FROM captures').length, before);
 
+// Meta returns SOMEONE ELSE's conversation for a user_id lookup: that person's message must not count for this capture
+// (it used to be taken as everyone's reply, and could save one person's email under another contact).
+run("DELETE FROM captures WHERE status IN ('waiting','got_email')");
+assert.equal(await comentar(comment('CX1', 'eva', 'UX1'), 'UX1'), 1);
+assert.equal(await comentar(comment('CX2', 'ivan', 'UX2'), 'UX2'), 1);
+const ajena = conv(msg('UX2', 'ivan@mail.com', 5000));
+const outX = out.length;
+await pollDMs(deps([], { conversationByUser: async () => ({ data: [ajena] }) }));
+assert.equal(get("SELECT status FROM captures WHERE igsid='UX1'").status, 'waiting', 'UX1 did not write: still waiting');
+assert.equal(get("SELECT email FROM captures WHERE igsid='UX1'").email, null, "UX2's email is not saved for UX1");
+assert.equal(get("SELECT status FROM captures WHERE igsid='UX2'").status, 'done', 'UX2 did write: gets the resource');
+assert.deepEqual(out.slice(outX).map((o) => o[1]), ['UX2'], 'only the person who answered gets a message');
+
 console.log('OK: email capture tests passed');

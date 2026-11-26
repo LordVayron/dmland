@@ -84,13 +84,22 @@ The agent follows [AGENTS.md](AGENTS.md): it asks your language, installs and st
 | Limit | Value |
 |---|---|
 | Replies per hour per Instagram account | Meta allows about 750. DMLand stays at 600. |
-| Replies per hour per Facebook Page | Meta publishes no number. DMLand uses the same 600 cap. |
+| Replies per Facebook Page | Meta publishes no number. DMLand sends at most **2 per minute and 60 per hour** per Page, and **1 per minute and 30 per hour** for an automation whose video goes viral. See below. |
 | Comment age | Only comments under 7 days old can get a DM (both platforms). |
 | One DM per comment | A comment is answered once. |
 | Message size | 1000 bytes per DM. |
 | Facebook Page analytics | Views and reach are not available for Pages yet. |
 
 If Meta pauses sending, DMLand waits and retries by itself; comments are not lost while they are under 7 days old. Details in [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md).
+
+> [!WARNING]
+> **Facebook Pages get restricted much faster than Instagram accounts.** In real use, a Page that sent about 40
+> near-identical DMs with links in 12 minutes (a backlog after the computer slept, on a video that was getting a lot of
+> comments) was restricted by Meta (`#10/1893063`: "temporarily restricted from sending messages"). That is why DMLand
+> paces Pages slowly, slows down a single automation when its video goes viral, and pauses only that Page for an hour
+> if Meta restricts it. People still get their DM, just later (Meta allows 7 days). If your Page gets restricted, check
+> **Meta Business Suite → Page quality** for the notice. You can change the pace in `.env`; raising it is at your own
+> risk. Details in [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md#sending-pace-on-facebook-pages).
 
 DMLand only works while your computer and the program are on. To use the dashboard from your phone, use a private network such as [Tailscale](https://tailscale.com). Do not expose it directly to the internet.
 

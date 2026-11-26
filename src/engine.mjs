@@ -88,8 +88,10 @@ export const parseMetaTime = (s) => (s ? Date.parse(String(s).replace(/([+-]\d\d
 export const parseDbTime = (s) => (s ? Date.parse(String(s).replace(' ', 'T') + 'Z') : NaN);
 
 // quiet: does not log "duplicate" events (used by the periodic read, which checks the same comments every minute)
-export function handleComment(channel, comment, { sender, dry = false, instant = false, quiet = false } = {}) {
+// skip: ids of automations that must not take this comment for now (they reached their pace limit); the comment waits.
+export function handleComment(channel, comment, { sender, dry = false, instant = false, quiet = false, skip = null } = {}) {
   if (!dry && throttle.until > Date.now()) return []; // Meta asked for a pause: nothing is sent until it ends
+  if (!dry && channelPaused(channel)) return []; // this account is restricted: its comments wait (Meta allows 7 days)
   const from = comment.from || {};
   if (from.id && String(from.id) === String(channel.ig_user_id)) return []; // ignore our own comments
   if (comment.username && channel.username && comment.username === channel.username) return [];
@@ -100,6 +102,7 @@ export function handleComment(channel, comment, { sender, dry = false, instant =
   const launched = [];
   for (const a of automations) {
     if (a.media_id && a.media_id !== mediaId) continue;
+    if (skip?.has(a.id)) continue;
     // Only new comments: later than the moment the automation was activated
     const since = parseDbTime(a.since);
     if (!Number.isNaN(commentTime) && !Number.isNaN(since) && commentTime < since) continue;
@@ -109,10 +112,12 @@ export function handleComment(channel, comment, { sender, dry = false, instant =
       new Date(Number.isNaN(commentTime) ? Date.now() : commentTime).toISOString(), mediaId);
     if (ins.changes === 0) { if (!quiet) logEvent('duplicate', `Comment ${comment.id} already processed by "${a.name}"`); continue; }
     const runId = Number(ins.lastInsertRowid);
-    const contact = upsertContact(channel.id, String(from.id ?? 'unknown'), from.username);
-    run('UPDATE runs SET contact_id=? WHERE id=?', contact.id, runId);
+    // Facebook does not say who commented on a Page post: without an id, the contact is created after the DM,
+    // with the id Meta returns for the recipient (otherwise every commenter would collapse into one contact).
+    const contact = from.id ? upsertContact(channel.id, String(from.id), from.username) : { id: null, username: from.username ?? null, tags: '[]', fields: '{}' };
+    if (contact.id) run('UPDATE runs SET contact_id=? WHERE id=?', contact.id, runId);
     const p = execute({ a, channel, comment, contact, runId, sender, instant });
-    launched.push({ run_id: runId, automation: a.name, done: p });
+    launched.push({ run_id: runId, automation: a.name, automation_id: a.id, done: p });
   }
   return launched;
 }
@@ -121,6 +126,37 @@ export function handleComment(channel, comment, { sender, dry = false, instant =
 export const throttle = { until: 0, reason: '' };
 export const isRateLimit = (e) => [4, 17, 32, 613].includes(e.code) || /rate limit|too many|request limit/i.test(e.message || '');
 export const isBlocked = (e) => e.code === 368 || /temporarily blocked|restricted|spam/i.test(e.message || '');
+
+// Pause for ONE account (not all of them): Meta temporarily restricted its messages (#10/1893063).
+export const channelPause = new Map(); // channel id -> paused until (ms)
+export const channelPaused = (ch) => (channelPause.get(ch.id) ?? 0) > Date.now();
+export const isPageRestricted = (e) => e.subcode === 1893063 || /temporarily restricted from sending messages/i.test(e.message || '');
+export const RESTRICT_PAUSE_MIN = 60;
+
+// Error text with Meta's code, so the exact cause can be looked up: "text (#10/2018108)".
+export const metaError = (e) => `${e.message}${e.code ? ` (#${e.code}${e.subcode ? `/${e.subcode}` : ''})` : ''}`;
+// Seen on Facebook Pages: some private replies fail with this text and the same send goes through when retried.
+// Retried after 2, 10 and 30 min (always inside Meta's 7-day window).
+export const isTransientDm = (e) => /does not have permission for this action/i.test(e.message || '');
+export const RETRY_MINUTES = [2, 10, 30];
+
+// Retries the DMs Meta rejected temporarily whose turn has come. Returns how many were attempted.
+export async function retryDMs(channel, sender, max = 5) {
+  if (throttle.until > Date.now() || channelPaused(channel)) return 0;
+  const due = all(`SELECT r.* FROM runs r JOIN automations a ON a.id=r.automation_id
+    WHERE a.channel_id=? AND a.active=1 AND r.status='retry' AND r.retry_at <= ? ORDER BY r.retry_at LIMIT ?`, channel.id, new Date().toISOString(), max);
+  for (const r of due) {
+    if (channelPaused(channel)) break;
+    const a = get('SELECT * FROM automations WHERE id=?', r.automation_id);
+    if (Date.now() - Date.parse(r.comment_at) > 7 * 24 * 3600e3) { // Meta no longer allows a reply
+      run("UPDATE runs SET status='error', retry_at=NULL WHERE id=?", r.id); continue;
+    }
+    const contact = (r.contact_id && get('SELECT * FROM contacts WHERE id=?', r.contact_id)) || { id: null, username: null, tags: '[]', fields: '{}' };
+    run("UPDATE runs SET status='pending' WHERE id=?", r.id);
+    await execute({ a, channel, comment: { id: r.comment_id, text: r.comment_text, from: {} }, contact, runId: r.id, sender, instant: true });
+  }
+  return due.length;
+}
 
 // Records that we asked this person for their email: from here on the program watches their DMs.
 function createCapture({ a, channel, contact, comment, runId, resp }) {
@@ -153,10 +189,27 @@ async function execute({ a, channel, comment, contact, runId, sender, instant })
       } else {
         resp = await sender.privateReplyText(comment.id, text);
       }
-      run('UPDATE runs SET dm_status=?, dm_at=?, variant=?, igsid=? WHERE id=?', 'ok', new Date().toISOString(), variant,
+      run('UPDATE runs SET dm_status=?, dm_at=?, variant=?, igsid=?, error=NULL, retry_at=NULL WHERE id=?', 'ok', new Date().toISOString(), variant,
         String(resp?.recipient_id ?? comment.from?.id ?? '') || null, runId);
+      if (!contact.id && resp?.recipient_id) { // Facebook: now we know who it is
+        Object.assign(contact, upsertContact(channel.id, String(resp.recipient_id), contact.username));
+        run('UPDATE runs SET contact_id=? WHERE id=?', contact.id, runId);
+      }
       if (askMode && !resp?.dry) createCapture({ a, channel, contact, comment, runId, resp });
     } catch (e) {
+      const err = metaError(e);
+      const tries = get('SELECT dm_retries FROM runs WHERE id=?', runId)?.dm_retries ?? 0;
+      // Page restricted by Meta: pause only that account; this comment waits for the pause to end
+      // (it does not count as an attempt; insisting during a restriction can extend it).
+      // Checked before isBlocked, whose "restricted" match would pause every account.
+      if (isPageRestricted(e)) {
+        const until = Date.now() + RESTRICT_PAUSE_MIN * 60000;
+        const was = channelPaused(channel);
+        channelPause.set(channel.id, until);
+        run('UPDATE runs SET dm_status=?, status=?, error=?, retry_at=? WHERE id=?', 'error', 'retry', err, new Date(until).toISOString(), runId);
+        if (!was) logEvent('error', `Meta restricted messages from @${channel.username} (${err}). Pausing ${RESTRICT_PAUSE_MIN} min on that account only; comments will wait.`);
+        return;
+      }
       if (isRateLimit(e) || isBlocked(e)) {
         // Not marked as an error: the run is deleted so it is retried when the pause ends.
         const minutes = isBlocked(e) ? 60 : 10;
@@ -166,8 +219,15 @@ async function execute({ a, channel, comment, contact, runId, sender, instant })
         logEvent('error', `Meta paused sending (${e.message}). Pausing ${minutes} min; the comment is retried later.`);
         return;
       }
-      run('UPDATE runs SET dm_status=?, status=?, error=? WHERE id=?', 'error', 'error', e.message, runId);
-      logEvent('error', `DM failed (${a.name}): ${e.message}`);
+      // Temporary rejection (Meta accepts it minutes later): kept for a retry instead of being given up.
+      if (isTransientDm(e) && tries < RETRY_MINUTES.length) {
+        run('UPDATE runs SET dm_status=?, status=?, error=?, dm_retries=?, retry_at=? WHERE id=?', 'error', 'retry', err, tries + 1,
+          new Date(Date.now() + RETRY_MINUTES[tries] * 60000).toISOString(), runId);
+        logEvent('warn', `DM rejected by Meta (${a.name}): ${err}. Retry ${tries + 1} of ${RETRY_MINUTES.length} in ${RETRY_MINUTES[tries]} min`);
+        return;
+      }
+      run('UPDATE runs SET dm_status=?, status=?, error=?, retry_at=NULL WHERE id=?', 'error', 'error', err, runId);
+      logEvent('error', `DM failed (${a.name}): ${err}${tries ? ` (after ${tries} retries)` : ''}`);
       return;
     }
     const replies = json(a.public_replies, []).filter(Boolean);
@@ -178,7 +238,7 @@ async function execute({ a, channel, comment, contact, runId, sender, instant })
     }
     addTag(contact, a.tag);
     run(`UPDATE runs SET status=CASE WHEN status='dry' THEN 'dry' ELSE 'done' END WHERE id=?`, runId);
-    { const who = contact.username || contact.external_id; logEvent('run', askMode ? `"${a.name}" asked @${who} for their email` : knownEmail ? `"${a.name}" sent the resource directly (email already known) to @${who}` : `"${a.name}" ran for @${who}`); }
+    { const who = contact.username || contact.external_id || '—'; logEvent('run', askMode ? `"${a.name}" asked @${who} for their email` : knownEmail ? `"${a.name}" sent the resource directly (email already known) to @${who}` : `"${a.name}" ran for @${who}`); }
   } catch (e) {
     run('UPDATE runs SET status=?, error=? WHERE id=?', 'error', e.message, runId);
     logEvent('error', e.message);

@@ -73,15 +73,19 @@ async function sendResource(d, ch, capture, automation) {
 }
 
 // Messages from the person (not ours), oldest to newest, after `since`.
-function newUserMessages(msgs, selfId, since) {
+// Only messages written by THAT person (userId) count. Meta can return someone else's conversation (the Instagram
+// lookup by user_id does not filter and returns the most recent one): without this filter, one person's reply was
+// taken as the reply of everyone who was waiting.
+function newUserMessages(msgs, selfId, since, userId) {
   return (msgs || [])
     .filter((m) => m.from?.id && String(m.from.id) !== String(selfId) && m.message)
+    .filter((m) => !userId || String(m.from.id) === String(userId))
     .filter((m) => parseMetaTime(m.created_time) > since)
     .sort((a, b) => parseMetaTime(a.created_time) - parseMetaTime(b.created_time));
 }
 
 async function handleReply(d, ch, capture, automation, msgs) {
-  const fresh = newUserMessages(msgs, ch.ig_user_id, Date.parse(capture.last_msg_at));
+  const fresh = newUserMessages(msgs, ch.ig_user_id, Date.parse(capture.last_msg_at), capture.igsid);
   if (!fresh.length) return;
   const lastAt = new Date(parseMetaTime(fresh[fresh.length - 1].created_time)).toISOString();
   // If any of their new messages contains an email, use it (even if they wrote something else first).

@@ -335,7 +335,10 @@
   "Hmm, that does not look like an email 🤔 Please write it like name@example.com": "Mmm, eso no parece un email 🤔 Escríbelo así: nombre@ejemplo.com",
   "Account does not exist": "La cuenta no existe",
   "Route not found": "Ruta no encontrada",
-  "Version B of the DM that asks for the email": "La versión B del DM que pide el email"
+  "Version B of the DM that asks for the email": "La versión B del DM que pide el email",
+  "Retrying": "Reintentando",
+  "🔥 viral · slow pace": "🔥 viral · ritmo lento",
+  "Lots of comments: this automation sends 1 DM per minute and 30 per hour for 24 h": "Muchos comentarios: esta automatización manda 1 DM por minuto y 30 por hora durante 24 h"
  },
  "patterns": [
   [
@@ -475,6 +478,22 @@
   [
    "^Meta paused sending \\((.+)\\)\\. Pausing (\\d+) min; the resource is sent later\\.$",
    "Meta frenó los envíos ($1). Pausa de $2 min; el recurso se envía después."
+  ],
+  [
+   "^DM rejected by Meta \\((.+)\\): (.+)\\. Retry (\\d+) of (\\d+) in (\\d+) min$",
+   "DM rechazado por Meta ($1): $2. Reintento $3 de $4 en $5 min"
+  ],
+  [
+   "^DM failed \\((.+)\\): (.+)$",
+   "DM falló ($1): $2"
+  ],
+  [
+   "^Meta restricted messages from @(\\S+) \\((.+)\\)\\. Pausing (\\d+) min on that account only; comments will wait\\.$",
+   "Meta restringió los mensajes de @$1 ($2). Pausa de $3 min solo en esa cuenta; los comentarios esperan."
+  ],
+  [
+   "^🔥 \"(.+)\" went viral \\((\\d+) comments in the last hour, (\\d+) waiting\\): slowing to (\\d+) DM per minute and (\\d+) per hour for (\\d+) h$",
+   "🔥 \"$1\" se volvió viral ($2 comentarios en la última hora, $3 esperando): baja a $4 DM por minuto y $5 por hora durante $6 h"
   ]
  ]
 }

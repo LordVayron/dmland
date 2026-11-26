@@ -97,7 +97,9 @@ account you own. The DM arrives in that account's Messenger.
 
 | Symptom | Likely cause |
 |---|---|
-| "Application does not have permission" (code 10 or 200) | The system user is missing the Page, or the token lacks `pages_messaging` / `pages_manage_engagement`. |
+| "Application does not have permission" (code 10 or 200) on **every** DM | The system user is missing the Page, or the token lacks `pages_messaging` / `pages_manage_engagement`. |
+| "Application does not have permission" on **some** DMs, with `(#10/1893063)` | Meta temporarily restricted the Page from sending messages, usually after a burst of similar DMs. DMLand pauses that Page and tries again slowly. Check **Meta Business Suite → Page quality**. See [Sending pace on Facebook Pages](HOW-IT-WORKS.md#sending-pace-on-facebook-pages). |
+| "Application does not have permission" on some DMs, other codes | Usually temporary. The run shows **Retrying** and DMLand tries again after 2, 10 and 30 minutes. |
 | "requires the 'pages_read_user_content' permission" (code 10) | Add `pages_read_user_content` to the app's Page use case and to the token. |
 | "A page access token is required" (code 210 or 190) | You connected before DMLand stored Page tokens. Connect the Page again with the same ID. |
 | No posts in the picker | DMLand reads the Page's published posts and reels (24 newest). A reel that is also a post shows once. |

@@ -394,7 +394,7 @@ const initials = (u) => String(u || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2
 const AVG = ['var(--g-amber)', 'var(--g-violet)', 'var(--g-rose)', 'var(--g-blue)'];
 const avatar = (u) => `<span class="av" style="background:${AVG[(String(u).length + (String(u).charCodeAt(0) || 0)) % 4]}">${esc(initials(u))}</span>`;
 const CAP = { waiting: '<span class="st warn">Waiting for email</span>', got_email: '<span class="st warn">Sending resource</span>', done: '<span class="st ok">Email captured</span>', expired: '<span class="st mute">No email</span>', failed: '<span class="st bad">Couldn\'t send</span>' };
-const stChip = (r) => r.status === 'error' ? '<span class="st bad">Error</span>' : r.capture_status ? CAP[r.capture_status] : r.status === 'done' ? '<span class="st ok">Sent</span>' : r.status === 'pending' ? '<span class="st warn">Waiting</span>' : '<span class="st bad">Error</span>';
+const stChip = (r) => r.status === 'error' ? '<span class="st bad">Error</span>' : r.capture_status ? CAP[r.capture_status] : r.status === 'done' ? '<span class="st ok">Sent</span>' : r.status === 'pending' ? '<span class="st warn">Waiting</span>' : r.status === 'retry' ? '<span class="st warn">Retrying</span>' : '<span class="st bad">Error</span>';
 
 async function loadBase() {
   [S.brands, S.channels, S.autos, S.poller] = await Promise.all([api('/api/brands'), api('/api/channels'), api('/api/automations'), api('/api/poller')]);
@@ -736,7 +736,7 @@ function paintAutoCards() {
     const t = a.media_id ? thumbOf(a.channel_id, a.media_id) : '';
     return `<div class="acard c${i % 3} rise" style="--i:${i + 2}" data-id="${a.id}">
       <div class="thumb">${t ? `<img src="${esc(t)}" alt="" referrerpolicy="no-referrer" loading="lazy">` : ''}<div class="play"><span>${a.media_id ? ic('play') : ic('bolt')}</span></div></div>
-      <div class="info"><h3 translate="no">${esc(a.name)}</h3><div>${a.match_mode === 'any' ? '<span class="chip">any comment</span>' : a.keywords.slice(0, 4).map((k) => `<span class="chip" translate="no">${esc(k)}</span>`).join('')}${a.mode === 'email' ? '<span class="chip" style="background:rgba(244,177,63,.28);border-color:rgba(244,177,63,.5)">✉ asks for email</span>' : ''}${a.source_id ? '<span class="chip" style="background:rgba(88,176,245,.28);border-color:rgba(88,176,245,.5)" title="Created automatically from the pending inbox">⚡ automatic</span>' : ''}${a.alt_ask_text ? '<span class="chip" title="A/B test active" translate="no">A/B</span>' : ''}</div>
+      <div class="info"><h3 translate="no">${esc(a.name)}</h3><div>${a.match_mode === 'any' ? '<span class="chip">any comment</span>' : a.keywords.slice(0, 4).map((k) => `<span class="chip" translate="no">${esc(k)}</span>`).join('')}${a.mode === 'email' ? '<span class="chip" style="background:rgba(244,177,63,.28);border-color:rgba(244,177,63,.5)">✉ asks for email</span>' : ''}${a.source_id ? '<span class="chip" style="background:rgba(88,176,245,.28);border-color:rgba(88,176,245,.5)" title="Created automatically from the pending inbox">⚡ automatic</span>' : ''}${a.alt_ask_text ? '<span class="chip" title="A/B test active" translate="no">A/B</span>' : ''}${a.viral_until && Date.parse(a.viral_until) > Date.now() ? '<span class="chip" style="background:rgba(245,99,88,.28);border-color:rgba(245,99,88,.5)" title="Lots of comments: this automation sends 1 DM per minute and 30 per hour for 24 h">🔥 viral · slow pace</span>' : ''}</div>
       <div class="mute" style="margin-bottom:8px">${a.media_id ? 'A specific reel' : 'All posts and reels'}</div>
       <div class="meta"><span>${ic('send')}${a.sent} sent</span>
         <span style="display:flex;align-items:center;gap:8px">${a.active ? '' : '<span class="mute">Paused</span>'}<button class="tgl ${a.active ? 'on' : ''}" data-t="${a.id}" aria-label="${a.active ? 'Pause' : 'Activate'}" aria-pressed="${!!a.active}"></button></span></div></div></div>`;
@@ -860,14 +860,14 @@ async function viewActividad(opts = {}) {
   if (!S.channels.length) return $('#main').innerHTML = header('Activity') + noAccount();
   const [runs, ev] = await Promise.all([api('/api/runs'), api('/api/events')]);
   const rs = runs.filter((r) => inScope(r.brand_id)); const f = S.afilter || 'all';
-  const waiting = (r) => r.status === 'pending' || r.capture_status === 'waiting' || r.capture_status === 'got_email';
+  const waiting = (r) => r.status === 'pending' || r.status === 'retry' || r.capture_status === 'waiting' || r.capture_status === 'got_email';
   const shown = rs.filter((r) => f === 'all' || (f === 'ok' ? r.status === 'done' && !waiting(r) : f === 'bad' ? r.status === 'error' || r.capture_status === 'failed' : waiting(r)));
   if (quiet && S.tab !== 'actividad') return;
   const html = header('Activity') + `
   <div class="filters rise">${[['all', 'All'], ['ok', 'Sent'], ['wait', 'Waiting'], ['bad', 'Errors']].map(([k, l]) => `<button class="fpill ${f === k ? 'on' : ''}" data-f="${k}">${l}</button>`).join('')}</div>
   <div class="grid g-2">
     <div class="card rise" style="--i:1"><h2>${ic('send')}Replies</h2>${shown.length ? `<table class="tbl"><thead><tr><th>User</th><th class="hide-s">Comment</th><th class="hide-s">Automation</th><th class="hide-s">When</th><th>Status</th></tr></thead><tbody>
-      ${shown.map((r) => `<tr><td><div class="who" translate="no">${avatar(r.username)}@${esc(r.username || '—')}</div></td><td class="hide-s" translate="no">${esc(r.comment_text)}</td><td class="hide-s" translate="no">${esc(r.automation)}</td><td class="hide-s mute">${esc(ago(r.created_at))}</td><td>${stChip(r)}${r.status === 'error' ? `<div class="mute" style="margin-top:4px;max-width:260px" translate="no">${esc(r.error)}</div>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p class="mute">Nothing here yet.</p>'}</div>
+      ${shown.map((r) => `<tr><td><div class="who" translate="no">${avatar(r.username)}@${esc(r.username || '—')}</div></td><td class="hide-s" translate="no">${esc(r.comment_text)}</td><td class="hide-s" translate="no">${esc(r.automation)}</td><td class="hide-s mute">${esc(ago(r.created_at))}</td><td>${stChip(r)}${r.status === 'error' || r.status === 'retry' ? `<div class="mute" style="margin-top:4px;max-width:260px" translate="no">${esc(r.error)}</div>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p class="mute">Nothing here yet.</p>'}</div>
     <div class="card rise" style="--i:2"><h2>Log</h2>${ev.slice(0, 14).map((e) => `<div style="display:flex;gap:10px;margin:0 0 12px"><i class="dot ${e.kind === 'error' ? 'bad' : e.kind === 'warn' ? 'warn' : ''}" style="margin-top:6px"></i><div><div style="font-size:13.5px" translate="no">${esc(trEvent(e.note))}</div><div class="mute">${esc(ago(e.ts))}</div></div></div>`).join('') || '<p class="mute">No events.</p>'}</div>
   </div>`;
   if (!paint(html, quiet)) return;
