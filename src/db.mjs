@@ -118,10 +118,13 @@ addCols('runs', [
   ['dm_at', 'TEXT'],        // ISO: when our DM went out (speed = dm_at - comment_at)
   ['variant', 'TEXT'],      // 'A' | 'B' in two-version tests
   ['igsid', 'TEXT'],        // person id for messages (to know whether they wrote back)
+  ['dm_retries', 'INTEGER NOT NULL DEFAULT 0'], // DM retries after a temporary rejection from Meta
+  ['retry_at', 'TEXT'],     // ISO: when the next retry is due (status='retry')
 ]);
 addCols('automations', [
   ['alt_ask_text', 'TEXT'],                   // version B of the DM that asks for the email (A/B test)
   ['utm', 'INTEGER NOT NULL DEFAULT 0'],      // 1 = add UTM parameters to the links that are sent
+  ['viral_until', 'TEXT'],                    // ISO: viral mode (slow pace on Facebook) until this time
 ]);
 db.exec(`
 CREATE TABLE IF NOT EXISTS account_stats (   -- daily account snapshot

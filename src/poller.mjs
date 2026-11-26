@@ -1,13 +1,46 @@
 // Periodic comment reading (an alternative to the webhook while Meta does not deliver it).
 // No AI: it only queries the Meta API and reuses the same engine as the webhook.
-import { all, logEvent } from './db.mjs';
+import { all, get, run, logEvent } from './db.mjs';
 import { apiFor } from './platform.mjs';
-import { handleComment, realSender, parseMetaTime, parseDbTime, throttle } from './engine.mjs';
+import { handleComment, realSender, parseMetaTime, parseDbTime, throttle, retryDMs, channelPaused, matches } from './engine.mjs';
 import { pollDMs, captureCounts } from './capture.mjs';
 
 const SEVEN_DAYS = 7 * 24 * 3600 * 1000; // Meta limit for replying to a comment
 const MAX_PER_CYCLE = 10;                 // cap of replies per cycle (10/min = 600/h, under Meta's 750/h limit)
 const HOURLY_CAP = Number(process.env.HOURLY_CAP || 600); // cap per account per hour (Meta allows 750)
+// Facebook Pages get a much lower pace. A burst of near-identical DMs with links (a viral video, or a backlog sent
+// all at once) got a Page restricted by Meta (#10/1893063). What is left waits: Meta allows replies for 7 days.
+const FB_MAX_PER_CYCLE = Number(process.env.FB_MAX_PER_CYCLE || 2); // at most 2 per minute
+const FB_HOURLY_CAP = Number(process.env.FB_HOURLY_CAP || 60);      // and 60 per hour
+export const limitsFor = (ch) => ch.type === 'facebook' ? { perCycle: FB_MAX_PER_CYCLE, hourly: FB_HOURLY_CAP } : { perCycle: MAX_PER_CYCLE, hourly: HOURLY_CAP };
+
+// Viral mode (Facebook only, per automation): when one video gets many comments with the keyword (in the last
+// hour, or waiting for their DM), THAT automation drops to 1 DM per minute and 30 per hour for 24 h.
+// The Page's other automations keep their normal pace (inside the Page's limit).
+export const VIRAL = {
+  trigger: Number(process.env.FB_VIRAL_TRIGGER || 20), // keyword comments in 1 h, or still unanswered
+  perCycle: Number(process.env.FB_VIRAL_PER_CYCLE || 1),
+  hourly: Number(process.env.FB_VIRAL_HOURLY_CAP || 30),
+  hours: Number(process.env.FB_VIRAL_HOURS || 24),     // lasts 24 h from the last time the burst was seen
+};
+export const isViral = (a, now = Date.now()) => !!a.viral_until && Date.parse(a.viral_until) > now;
+
+// Checks whether an automation on this video went viral and marks it (or extends its 24 h).
+function checkViral(ch, autos, comments, now) {
+  for (const a of autos) {
+    const since = parseDbTime(a.since);
+    const mine = comments.filter((c) => matches(a, c.text) && (Number.isNaN(since) || parseMetaTime(c.timestamp) >= since));
+    if (!mine.length) continue;
+    const lastHour = mine.filter((c) => now - parseMetaTime(c.timestamp) <= 3600e3).length;
+    const done = new Set(all('SELECT comment_id FROM runs WHERE automation_id=?', a.id).map((r) => r.comment_id));
+    const waiting = mine.filter((c) => !done.has(String(c.id))).length;
+    if (lastHour < VIRAL.trigger && waiting < VIRAL.trigger) continue;
+    const until = new Date(now + VIRAL.hours * 3600e3).toISOString();
+    if (!isViral(a, now)) logEvent('warn', `🔥 "${a.name}" went viral (${lastHour} comments in the last hour, ${waiting} waiting): slowing to ${VIRAL.perCycle} DM per minute and ${VIRAL.hourly} per hour for ${VIRAL.hours} h`);
+    run('UPDATE automations SET viral_until=? WHERE id=?', until, a.id);
+    a.viral_until = until;
+  }
+}
 const RECENT_MEDIA = 5;                   // for "all posts" automations: the latest N
 
 export const status = { enabled: false, running: false, lastRun: null, lastError: null, lastCount: 0, totalSent: 0, intervalSec: 60 };
@@ -52,20 +85,26 @@ let lastTruncWarn = 0;
 async function pollChannel(d, ch, now) {
   const autos = all('SELECT * FROM automations WHERE channel_id=? AND active=1', ch.id);
   if (!autos.length) return 0;
-  // Hourly cap: what is left waits for the next cycle (comments are handled up to 7 days later)
+  if (channelPaused(ch)) return 0; // Meta restricted this account: resumes when the pause ends
+  // Hourly cap: what is left waits for the next cycle (comments are handled up to 7 days later).
+  // Attempts count too (including the ones Meta rejected): to Meta, every attempt is one more message.
+  const { perCycle, hourly } = limitsFor(ch);
   const sentLastHour = all(`SELECT COUNT(*) AS n FROM runs r JOIN automations a ON a.id=r.automation_id
-    WHERE a.channel_id=? AND r.status='done' AND r.created_at >= datetime('now','-1 hour')`, ch.id)[0].n;
-  let budget = HOURLY_CAP - sentLastHour;
+    WHERE a.channel_id=? AND r.status IN ('done','error','retry') AND r.created_at >= datetime('now','-1 hour')`, ch.id)[0].n;
+  let budget = hourly - sentLastHour;
   if (budget <= 0) return 0;
+  // First, the DMs Meta rejected temporarily whose retry is due (inside the same limit)
+  const retried = await (d.retryDMs || retryDMs)(ch, d.makeSender(ch.host, ch.token, ch.ig_user_id, ch.type), Math.min(5, perCycle, budget));
+  budget -= retried;
   // Which posts to look at: those with their own automation, plus the latest N if any is "all"
   const mediaIds = new Set(autos.filter((a) => a.media_id).map((a) => a.media_id));
   if (autos.some((a) => !a.media_id)) {
     const recent = await d.listMedia(ch.host, ch.token, ch.ig_user_id, ch.type);
     (recent.data || []).slice(0, RECENT_MEDIA).forEach((m) => mediaIds.add(m.id));
   }
-  let launchedTotal = 0;
+  let launchedTotal = retried;
   for (const mediaId of mediaIds) {
-    if (launchedTotal >= MAX_PER_CYCLE || budget <= 0 || throttle.until > Date.now()) break;
+    if (launchedTotal >= perCycle || budget <= 0 || throttle.until > Date.now()) break;
     // Since when a comment matters: the more recent of "7 days ago" and the oldest activation of this reel's automations
     const sinces = autos.filter((a) => !a.media_id || a.media_id === mediaId).map((a) => parseDbTime(a.since)).filter((t) => !Number.isNaN(t));
     const cutoff = Math.max(now - SEVEN_DAYS, sinces.length ? Math.min(...sinces) : 0);
@@ -77,15 +116,22 @@ async function pollChannel(d, ch, now) {
     const comments = raw
       .filter((c) => now - parseMetaTime(c.timestamp) <= SEVEN_DAYS)
       .sort((a, b) => parseMetaTime(a.timestamp) - parseMetaTime(b.timestamp)); // oldest first
+    const mediaAutos = autos.filter((a) => !a.media_id || a.media_id === mediaId);
+    if (ch.type === 'facebook') checkViral(ch, mediaAutos, comments, now);
+    // Automations in viral mode keep their own count (per cycle and per hour)
+    const slow = new Map(mediaAutos.filter((a) => ch.type === 'facebook' && isViral(a, now)).map((a) => [a.id, {
+      cycle: 0, hour: get(`SELECT COUNT(*) n FROM runs WHERE automation_id=? AND status IN ('done','error','retry') AND created_at >= datetime('now','-1 hour')`, a.id).n }]));
+    const capped = () => new Set([...slow].filter(([, u]) => u.cycle >= VIRAL.perCycle || u.hour >= VIRAL.hourly).map(([id]) => id));
     for (const c of comments) {
-      if (launchedTotal >= MAX_PER_CYCLE || budget <= 0 || throttle.until > Date.now()) break;
+      if (launchedTotal >= perCycle || budget <= 0 || throttle.until > Date.now()) break;
       const launched = handleComment(
         ch,
         { id: c.id, text: c.text, timestamp: c.timestamp, username: c.username,
           from: { id: c.from?.id ?? c.username, username: c.from?.username ?? c.username }, media: { id: mediaId } },
-        { sender: d.makeSender(ch.host, ch.token, ch.ig_user_id, ch.type), quiet: true },
+        { sender: d.makeSender(ch.host, ch.token, ch.ig_user_id, ch.type), quiet: true, skip: slow.size ? capped() : null },
       );
       if (!launched.length) continue;
+      for (const l of launched) { const u = slow.get(l.automation_id); if (u) { u.cycle++; u.hour++; } }
       launchedTotal += launched.length;
       budget -= launched.length;
       await Promise.all(launched.map((l) => l.done));

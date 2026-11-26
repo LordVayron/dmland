@@ -24,6 +24,8 @@
 | Own comments | Ignored |
 | Only new comments | An automation only answers comments posted after it was activated |
 | Meta pauses sending | DMLand pauses 10 min (60 min if Meta flags spam) and retries; pending comments are not lost |
+| Meta rejects one DM temporarily | The run shows **Retrying** and is retried after 2, 10 and 30 min; after that it becomes an error |
+| Error details | Every failed DM stores Meta's code, e.g. `(#10/1893063)`, so the exact cause can be looked up in Meta's error codes |
 | Message size | 1000 bytes per DM (Meta limit) |
 
 These numbers come from Meta's documentation and our own testing; check Meta's current docs, they can change.
@@ -35,15 +37,48 @@ then the public reply goes under the comment. Differences:
 
 | Rule | Value |
 |---|---|
-| Hourly limit | Meta does not publish a number for Pages. DMLand applies the same cap of 600 per hour per Page until this is confirmed. Instagram and the Page each have their own counter. |
+| Sending pace | Much slower than Instagram: 2 per minute and 60 per hour per Page (see [Sending pace on Facebook Pages](#sending-pace-on-facebook-pages)). Instagram and the Page each have their own counter. |
 | Comment age | Private replies only for comments under 7 days old, one per comment (same as Instagram) |
 | Follow-up messages | Only within 24 hours of the person's last message (Messenger's standard window), which covers the email capture conversation |
 | Message size | DMLand keeps the 1000-byte cap for both platforms. Messages with a button are cut to 640 characters (Messenger limit). |
 | Which posts | The Page's 24 most recent posts and reels (a reel that is also a post shows once), top-level comments only |
 | Insights | Not implemented yet: views and reach show "no data" for Pages |
 | UTM links | `utm_source` is `facebook` or `instagram`, depending on the account |
+| Who commented | Meta does not return who commented on a Page post. DMLand creates the contact after the DM, from the id Meta returns for the recipient. Names are not available. |
 
-Connecting and reading a real Page has been checked; a Messenger DM to a real commenter has not been confirmed yet.
+Connecting a real Page, reading its comments and sending Messenger DMs to real commenters have been checked.
+
+### Sending pace on Facebook Pages
+
+Meta does not publish how many private replies a Page may send, and Pages are restricted much faster than Instagram
+accounts. In real use, a Page that sent about 40 near-identical DMs with links in 12 minutes was restricted
+(`#10/1893063`, "You are temporarily restricted from sending messages"). After that, Meta rejected some DMs and let
+others through for hours. So DMLand protects Pages in four ways:
+
+| Protection | What it does |
+|---|---|
+| Page pace | At most **2 DMs per minute and 60 per hour** per Page. Attempts Meta rejected count too. The rest waits for the next minute. |
+| Viral mode | When one automation's video gets **20 or more keyword comments in the last hour**, or 20 or more are still waiting for their DM, **that automation** drops to **1 DM per minute and 30 per hour for 24 hours** (the 24 hours restart while the burst lasts). The Page's other automations keep their pace. The dashboard shows a **🔥 viral · slow pace** chip and the log says when it started. |
+| Restriction pause | If Meta answers `#10/1893063`, DMLand pauses **only that Page** for 60 minutes. The comment is kept (it does not spend a retry) and new comments wait. Other accounts keep sending. |
+| Retries | If Meta rejects a DM with "Application does not have permission for this action" but it is not a restriction, DMLand retries after 2, 10 and 30 minutes. |
+
+Nobody is skipped: comments wait and are answered later, as long as they are under 7 days old. A burst also happens
+when DMLand was off or the computer was asleep: the comments pile up and would all go out together when it comes back.
+The pace limits prevent that too.
+
+You can change the numbers in `.env` (restart DMLand after):
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `FB_MAX_PER_CYCLE` | 2 | DMs per minute per Page |
+| `FB_HOURLY_CAP` | 60 | DMs per hour per Page |
+| `FB_VIRAL_TRIGGER` | 20 | Keyword comments (last hour, or waiting) that turn on viral mode |
+| `FB_VIRAL_PER_CYCLE` | 1 | DMs per minute for a viral automation |
+| `FB_VIRAL_HOURLY_CAP` | 30 | DMs per hour for a viral automation |
+| `FB_VIRAL_HOURS` | 24 | How long viral mode lasts after the last burst |
+
+Raising them is at your own risk: Meta's real limit is unknown. If your Page gets restricted, look for the notice in
+**Meta Business Suite → Page quality**, and leave DMLand running: it will keep pausing and trying again slowly.
 
 ## Pages
 

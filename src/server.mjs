@@ -253,8 +253,10 @@ function webhook(req, res, url) {
         if (ch.field === 'comments' && ch.value && !ch.value.parent_id) {
           handleComment(channel, ch.value, { sender: sender() });
         } else if (ch.field === 'feed') { // Facebook Page: new comment on a post
+          // With periodic reading on, the Page is handled only from there so its pace limit applies
+          // (the webhook would send the DM instantly, with no limit).
           const comment = commentFromWebhook(ch.value);
-          if (comment) handleComment(channel, comment, { sender: sender() });
+          if (comment && !poller.status.enabled) handleComment(channel, comment, { sender: sender() });
         }
       }
     }
