@@ -278,6 +278,39 @@
   @media (max-width: 1250px) { .grid.g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 1100px) { .trend { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 600px) { .trend4, .grid.g4 { grid-template-columns: minmax(0, 1fr); } }
+  /* ---------- Content report ---------- */
+  .rp-sub { display: block; font-size: 14px; font-weight: 600; color: var(--ink-3); letter-spacing: 0; margin-top: 2px; }
+  .rp-big { font-size: 26px; font-weight: 800; letter-spacing: -.6px; color: #fff; }
+  .kpi .d { font-size: 13px; font-weight: 700; opacity: .95; margin-top: 2px; }
+  .rp-hook { display: flex; gap: 12px; align-items: center; min-width: 0; } .rp-hook b { font-weight: 700; display: block; } .rp-hook .mute { display: block; margin-top: 2px; }
+  .rp-hook .nohook { color: var(--ink-3); font-style: italic; font-weight: 600; }
+  .xbar { display: flex; align-items: center; gap: 8px; white-space: nowrap; } .xbar .tr { width: 84px; height: 8px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; flex: none; } .xbar .tr i { display: block; height: 100%; border-radius: 99px; }
+  .st.mute2 { color: var(--ink-3); background: rgba(255,255,255,.06); border-color: var(--line); }
+  .hl { list-style: none; margin: 0; padding: 0; } .hl li { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.07); } .hl li:first-child { border-top: 0; }
+  .hl .q { flex: 1; font-weight: 600; min-width: 0; } .hl .m { font-weight: 800; white-space: nowrap; } .hl .why { display: block; color: var(--ink-3); font-size: 12.5px; font-weight: 500; margin-top: 2px; }
+  .rp-tr { display: grid; grid-template-columns: minmax(120px, 1.2fr) 1fr 1fr; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid rgba(255,255,255,.07); font-size: 13.5px; } .rp-tr.h { border-top: 0; color: var(--ink-3); font-size: 12px; font-weight: 600; padding-top: 0; }
+  .rp-tr .xbar .tr { width: 60px; }
+  .rp-fun { display: flex; flex-direction: column; gap: 10px; } .rp-fr { display: grid; grid-template-columns: 140px 1fr 70px; gap: 12px; align-items: center; font-weight: 600; font-size: 14px; }
+  .rp-fr .tr { height: 24px; border-radius: 8px; background: rgba(255,255,255,.06); overflow: hidden; } .rp-fr .tr i { display: block; height: 100%; border-radius: 8px; } .rp-fr .v { text-align: right; } .rp-fr .drop { grid-column: 2 / 4; color: var(--ink-3); font-size: 12.5px; font-weight: 500; margin-top: -6px; }
+  .rp-acts { list-style: none; margin: 0; padding: 0; counter-reset: a; } .rp-acts li { counter-increment: a; display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.07); } .rp-acts li:first-child { border-top: 0; }
+  .rp-acts li::before { content: counter(a); width: 26px; height: 26px; flex: none; border-radius: 50%; background: rgba(246,183,63,.18); color: #f6b73f; display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+  .rp-acts b { display: block; } .rp-acts span { color: var(--ink-3); font-size: 13px; }
+  .rp-ai { border-radius: var(--r-lg); padding: 22px 24px; background: linear-gradient(135deg, rgba(154,118,245,.16), rgba(106,63,212,.08)); border: 1px solid rgba(154,118,245,.45); }
+  .rp-ai h2 { margin: 0; font-size: 18px; font-weight: 800; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } .rp-ai h2 .btn { margin-left: auto; }
+  .rp-ai .meta { color: var(--ink-3); font-size: 12.5px; margin: 4px 0 14px; }
+  .rp-ai h4 { margin: 18px 0 6px; font-size: 14px; color: #c9b6ff; } .rp-ai p, .rp-ai li { font-size: 14.5px; } .rp-ai ul { margin: 0; padding-left: 20px; } .rp-ai li { margin: 5px 0; }
+  .rp-idea { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 8px; } .rp-idea div { background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; font-weight: 700; font-size: 14px; } .rp-idea span { display: block; font-weight: 500; color: var(--ink-3); font-size: 12.5px; margin-top: 6px; }
+  .btn.ai { background: var(--g-violet); box-shadow: 0 10px 26px rgba(143,107,242,.35); } .btn[disabled] { opacity: .6; cursor: wait; }
+  .rp-leg { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); margin-top: 8px; } .rp-leg i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+  .linkbtn { background: none; border: 0; padding: 0; color: #c9b6ff; font: inherit; font-weight: 700; font-size: 12.5px; cursor: pointer; text-decoration: underline; }
+  .spin { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; animation: spin .8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }
+  .modal .box.wide { max-width: 640px; } .modal textarea { width: 100%; margin-top: 12px; }
+  @media (max-width: 900px) { .rp-idea { grid-template-columns: minmax(0, 1fr); } .rp-fr { grid-template-columns: 110px 1fr 56px; } }
+  @media print {
+    body { background: #1b1418 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .stage { padding: 0; } .window { display: block; border-radius: 0; box-shadow: none; } .side, .noprint, .iconbtn, .top .pill, .top .seg { display: none !important; }
+    .card, .tcard, .kpi, .rp-ai { break-inside: avoid; } .rise { animation: none; }
+  }
 </style>
 </head>
 <body>
@@ -426,7 +459,7 @@ function chrome() {
   $('#bb').onclick = (e) => { e.stopPropagation(); $('#bm').classList.toggle('open'); };
   $('#bm').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; S.brand = b.dataset.b; store.set('brand', S.brand); $('#bm').classList.remove('open'); render(); };
   }
-  setHtml($('#nav'),  TABS.map(([k, l, i]) => `<a href="#/${k}" class="${S.tab === k ? 'on' : ''}">${ic(i)}${l}</a>`).join(''));
+  setHtml($('#nav'),  TABS.map(([k, l, i]) => `<a href="#/${k}" class="${S.tab === k || (k === 'analisis' && S.tab === 'report') ? 'on' : ''}">${ic(i)}${l}</a>`).join(''));
   const p = S.poller;
   setHtml($('#sidefoot'), p ? `${p.enabled ? 'Reading on' : 'Reading off'} · every ${p.intervalSec} s<br>${S.channels.length} account${S.channels.length === 1 ? '' : 's'} connected` : '');
 }
@@ -667,7 +700,7 @@ async function viewAnalisis() {
     return `<div class="abt"><b translate="no">${esc(t.name)}</b>${['A', 'B'].map((v) => `<div class="bars-row"><span class="nm">${T('Version')} ${v}</span>${bar(t[v].rate ?? 0, mx, v === 'A' ? 'var(--g-amber)' : 'var(--g-violet)')}<span class="pc">${t[v].rate ?? 0}%</span><span class="mute">${t[v].emails}/${t[v].n}</span></div>`).join('')}<p class="mute" translate="no" style="margin:4px 0 0">${esc(verdict)}</p></div>`;
   }).join('') : `<p class="mute">${T('Turn on "Test two versions" in an automation that asks for the email to compare messages.')}</p>`;
 
-  $('#main').innerHTML = header('Analytics', rangePills()) + `
+  $('#main').innerHTML = header('Analytics', rangePills() + `<a class="btn pri rise" href="#/report">📊 ${T('Content report')}</a>`) + `
   <div class="anstack">
     <div class="card rise" style="--i:1"><h2>${ic('play')}${T('Your reels')}</h2>
       ${a.reels.length ? `<div style="overflow-x:auto"><table class="tbl rt"><thead><tr><th>Reel</th><th>DMs</th><th>Emails</th><th>Likes</th><th>${T('Views')}</th><th>${T('Saves')}</th><th>${T('Shares')}</th><th>${T('Comments')}</th><th>${T('Used the keyword')}</th></tr></thead><tbody>${reelRows}</tbody></table></div>
@@ -947,8 +980,177 @@ function viewAjustes() {
   document.querySelectorAll('#langseg button').forEach((b) => (b.onclick = () => setLang(b.dataset.l)));
 }
 
+/* ---------- Content report ---------- */
+// Everything comes from /api/report (fixed rules, no AI). The AI only runs when "Interpret with AI" is pressed, and its answer is saved.
+S.repRange = ['7', '30'].includes(store.get('repRange', '30')) ? store.get('repRange', '30') : '30';
+const VERD = { winner: ['ok', 'Winner'], normal: ['warn', 'Normal'], low: ['bad', 'Low'] };
+const SLOT_LABEL = () => ({ late_night: T('Late night (0–6 h)'), morning: T('Morning (6–12 h)'), afternoon: T('Afternoon (12–18 h)'), evening: T('Evening (18–24 h)') });
+const SLOT_NAME = () => ({ late_night: T('late night'), morning: T('morning'), afternoon: T('afternoon'), evening: T('evening') });
+const TRAIT_LABEL = () => ({ number: T('Has a number'), question: T('Is a question'), you: T('Says "you"'), contrarian: T('Contrarian ("nobody", "stop")'), brand: T('Names a brand or tool'), short: T('12 words or fewer') });
+const TRAIT_CHIP = () => ({ number: T('number'), question: T('question'), you: T('"you"'), contrarian: T('contrarian'), brand: T('brand'), short: T('short') });
+const FUNNEL_LABEL = () => ({ views: T('Views'), comments: T('Comments'), matched: T('With keyword'), dms: T('DM sent'), emails: T('Email') });
+const funnelNote = (s) => ({ comments: T('of views comment'), matched: T('use the keyword'), dms: T('get the DM'), emails: T`of DMs that ask for it leave their email (${s.of ?? 0})` }[s.key] || '');
+function actionText(a) {
+  const v = a.v, sn = SLOT_NAME(), tl = TRAIT_LABEL();
+  switch (a.key) {
+    case 'slot': return [T`Post in the ${sn[v.best]} slot.`, T`There your reels do ${v.bestRatio}× your typical (${v.bestN} reels); in the ${sn[v.worst]} slot, ${v.worstRatio}× (${v.worstN} reels).` + (v.few ? ' ' + T('With few reels: treat it as something to test.') : '')];
+    case 'peak': return [T`Post a bit before ${v.from}:00.`, T('That is when your people comment most. There are not enough reels per slot yet to compare posting times.')];
+    case 'repeatTrait': return [T`Repeat in the hook: ${tl[v.trait].toLowerCase()}.`, T`Hooks with it did ${v.withAvg}× your typical against ${v.withoutAvg}× without it (${v.withN} and ${v.withoutN} reels).`];
+    case 'avoidTrait': return [T`Avoid in the hook: ${tl[v.trait].toLowerCase()}.`, T`With it: ${v.withAvg}× your typical; without it: ${v.withoutAvg}×.`];
+    case 'keepShort': case 'keepLong': return [a.key === 'keepShort' ? T('Keep scripts to a minute or less.') : T('Your longer scripts do better: do not cut them just to cut.'), T`≤ 60 s: ${v.short}× (${v.shortN} reels) · > 60 s: ${v.long}× (${v.longN} reels).`];
+    case 'keyword': return [T`Use keywords as clear as "${v.best}".`, T`"${v.best}" was used in ${v.bestShare}% of comments; "${v.worst}", in ${v.worstShare}%.`];
+    case 'push48': return [T('Push each reel in its first 48 hours.'), T`A typical reel gets ${v.pct}% of its views in 2 days: share it to your stories that same day.`];
+    default: return ['', ''];
+  }
+}
+const pubLabel = (r) => r.publishedAt ? new Date(r.publishedAt).toLocaleString(LANG, { day: 'numeric', month: 'short', weekday: 'short', hour: 'numeric', minute: '2-digit' }) : T`seen since ${r.publishedDay}`;
+const ratioColor = (x) => (x == null ? 'rgba(255,255,255,.2)' : x >= 1.5 ? '#4fd08a' : x <= 0.6 ? '#ef5b6b' : '#f4b13f');
+const xbar = (x, max) => `<div class="xbar"><span class="tr"><i style="width:${x == null ? 0 : Math.max(4, Math.min(100, (x / Math.max(1, max)) * 100))}%;background:${ratioColor(x)}"></i></span><b>${x == null ? '—' : x + '×'}</b></div>`;
+
+function lifeSvg(life) {
+  const W = 400, H = 170, x = (i) => 34 + (i * (W - 44)) / 6, y = (v) => 150 - (v / 100) * 130;
+  const line = (c, color) => { const p = c.pts.map((v, i) => (v == null ? null : [x(i), y(v)])).filter(Boolean); return p.length > 1 ? `<path d="${curve(p)}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>${p.map((q) => `<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="${color}"/>`).join('')}` : ''; };
+  let g = [0, 50, 100].map((v) => `<line x1="34" x2="${W - 10}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(255,255,255,.08)"/><text x="28" y="${y(v) + 4}" text-anchor="end" fill="#8f857b" font-size="11">${v}%</text>`).join('');
+  g += [0, 2, 4, 6].map((i) => `<text x="${x(i)}" y="166" text-anchor="middle" fill="#8f857b" font-size="11">D${i + 1}</text>`).join('');
+  if (life.winners) g += line(life.winners, '#4fd08a'); if (life.others) g += line(life.others, '#f6b73f');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${T('Cumulative views per day since posting')}">${g}</svg>`;
+}
+
+function aiBlock(ai, rep) {
+  if (!ai.enabled) return `<div class="rp-ai rise mt"><h2>✨ ${T('AI interpretation')}</h2><p class="mute">${T('Optional: add OPENROUTER_API_KEY to the .env file and restart DMLand to turn it on.')}</p></div>`;
+  const x = ai.saved;
+  if (!x) return `<div class="rp-ai rise mt" id="aibox"><h2>✨ ${T('AI interpretation')}<button class="btn ai noprint" id="aiGo" ${rep.reels.length < 3 ? 'disabled' : ''}>✨ ${T('Interpret with AI')}</button></h2>
+    <p class="mute" style="margin:8px 0 0">${T`The AI reads your reels' numbers and scripts and tells you which patterns it sees, what to try and 3 new hooks. It uses ${esc(ai.model)} through OpenRouter. Only numbers and scripts are sent: never usernames, emails or comments.`}</p></div>`;
+  const li = (xs) => `<ul>${(xs || []).map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+  const when = new Date(String(x.createdAt).replace(' ', 'T') + 'Z').toLocaleString(LANG, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  return `<div class="rp-ai rise mt" id="aibox"><h2>✨ ${T('Interpretation')}<button class="btn sec sm noprint" id="aiGo" data-force="1">${T('Interpret again')}</button></h2>
+    <div class="meta"><span translate="no">${esc(x.model)} · ${esc(when)}</span>${x.cost != null ? ` · ${T`cost $${Number(x.cost).toFixed(4)}`}` : ''} · ${T('only numbers and scripts were sent')}</div>
+    <div translate="no">
+    <p><b>${T('In short:')}</b> ${esc(x.summary)}</p>
+    ${x.hook_patterns?.length ? `<h4>${T('Patterns in your hooks')}</h4>${li(x.hook_patterns)}` : ''}
+    ${x.script_patterns?.length ? `<h4>${T('Patterns in your scripts')}</h4>${li(x.script_patterns)}` : ''}
+    ${x.timing ? `<h4>${T('Timing')}</h4><p style="margin:0">${esc(x.timing)}</p>` : ''}
+    ${x.try_next?.length ? `<h4>${T('What to try next week')}</h4>${li(x.try_next)}` : ''}
+    ${x.new_hooks?.length ? `<h4>${T('3 hooks to try')}</h4><div class="rp-idea">${x.new_hooks.map((h) => `<div>"${esc(h.text)}"<span>${esc(h.why)}</span></div>`).join('')}</div>` : ''}
+    </div></div>`;
+}
+
+function scriptModal(chId, mediaId, rerender) {
+  $('#modal').innerHTML = `<div class="modal"><div class="box wide" role="dialog" aria-modal="true"><h3>${T('Add this reel\'s script')}</h3>
+    <div class="mute">${T('Paste what is said in the video (or the script .json). The first sentences are taken as the hook.')}</div>
+    <textarea id="scTxt" rows="9" translate="no"></textarea>
+    <div class="act"><button class="btn sec" id="mc">${T('Cancel')}</button><button class="btn pri" id="mo">${T('Save script')}</button></div></div></div>`;
+  $('#mc').onclick = () => ($('#modal').innerHTML = '');
+  $('#mo').onclick = async () => {
+    try { await api('/api/reel-script', 'POST', { channel_id: chId, media_id: mediaId, text: $('#scTxt').value }); $('#modal').innerHTML = ''; toast(T('Script saved')); rerender(); }
+    catch (e) { toast(e.message, 'bad'); }
+  };
+  $('#scTxt').focus();
+}
+
+async function viewReport() {
+  if (!S.channels.length) return $('#main').innerHTML = header(T('Content report')) + noAccount();
+  const q = `range=${S.repRange}&lang=${LANG}${S.brand === 'all' ? '' : `&brand=${S.brand}`}`;
+  const rep = await api('/api/report?' + q);
+  S.channels.filter((c) => inScope(c.brand_id)).forEach((c) => loadMedia(c.id).then(() => { if (S.tab === 'report') fillThumbs(); }));
+  const brandName = S.brand === 'all' ? T('All brands') : (S.brands.find((b) => String(b.id) === String(S.brand))?.name || '');
+  const fmtD = (d) => new Date(d + 'T12:00:00').toLocaleDateString(LANG, { day: 'numeric', month: 'short' });
+  const seg = `<div class="seg rise" id="repseg">${[['7', T('7 days')], ['30', T('30 days')]].map(([k, l]) => `<button type="button" data-r="${k}" class="${S.repRange === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  const top = `<div class="top rise"><h1>${T('Content report')}<span class="rp-sub"><span translate="no">${esc(brandName)}</span> · ${fmtD(rep.from)} – ${fmtD(new Date().toLocaleDateString('sv'))} · ${rep.kpis.reels} reels</span></h1>${seg}
+    <a class="btn sec noprint" href="#/analisis">← ${T('Analytics')}</a><button class="btn sec noprint" id="rpPrint">⬇ PDF</button></div>`;
+  const k = rep.kpis, f = rep.findings, D = DAYS_LONG();
+
+  if (rep.reels.length < 3) {
+    $('#main').innerHTML = top + `<div class="card rise"><div style="font-weight:800;font-size:18px">${T('Not enough reels yet')}</div><p class="mute">${T('The report compares each reel against your typical one, so it needs at least 3 reels with stats in the period. Stats are read every 30 minutes; try 30 days.')}</p></div>`;
+    return bindRep();
+  }
+
+  // ---- KPIs and findings ----
+  const kpis = `<div class="grid g4">
+    <div class="kpi k-amber rise" style="--i:1"><div class="lb">${T('Views')}</div><div class="num">${num(k.views)}</div><div class="d">${k.viewsFromAccount ? T('whole account') : T('sum of the reels')}</div></div>
+    <div class="kpi k-violet rise" style="--i:2"><div class="lb">${T('DMs sent')}</div><div class="num">${num(k.dms)}</div><div class="d">${k.dmsPer1k == null ? '' : T`${k.dmsPer1k} per 1,000 views`}</div></div>
+    <div class="kpi k-rose rise" style="--i:3"><div class="lb">${T('Emails captured')}</div><div class="num">${num(k.emails)}</div><div class="d">${k.emailRate == null ? T('no reel asked for the email') : T`${k.emailRate}% of those asked`}</div></div>
+    <div class="kpi k-blue rise" style="--i:4"><div class="lb">${T('Followers')}</div><div class="num">${k.followersDelta == null ? '—' : (k.followersDelta > 0 ? '+' : '') + num(k.followersDelta)}</div><div class="d">${k.followers == null ? '' : T`${num(k.followers)} in total`}</div></div></div>`;
+  const tc = (acc, h, big, p, i) => `<div class="tcard rise" style="--i:${i};--acc:${acc}"><h3>${h}</h3><div class="rp-big">${big}</div><p>${p}</p></div>`;
+  const cut = (s, n) => esc(s.length > n ? s.slice(0, n) + '…' : s);
+  const findings = `<div class="grid g4 mt">
+    ${tc('#f6b73f', T('When your people comment'), f.peak ? `${f.peakDay != null ? esc(D[f.peakDay].slice(0, 3)) + ', ' : ''}${f.peak.from}–${f.peak.to} h` : '—', f.peak ? T`${f.commentsInPeak}% of comments arrived between ${f.peak.from}:00 and ${f.peak.to}:00.` : T('No comments yet.'), 1)}
+    ${tc('#9a76f5', T('Winning reel'), f.top ? T`${f.top.ratio}× your typical` : '—', f.top ? `${f.top.hook ? `<span translate="no">"${cut(f.top.hook, 70)}"</span> · ` : ''}${num(f.top.views)} views` : T('No reel passed 1.5× your typical.'), 2)}
+    ${tc('#ee6f8c', T('Seconds watched'), f.watch ? T`${f.watch.avg} s average` : '—', f.watch ? T`Best: ${f.watch.best.watchSec} s.` + (f.watch.best.hook ? ` <span translate="no">"${cut(f.watch.best.hook, 50)}"</span>` : '') : T('No watch data.'), 3)}
+    ${tc('#5ab4f6', T('Keyword'), f.keyword ? `${f.keyword.avg}%` : '—', f.keyword ? T`of comments use the keyword. Best: ${esc(f.keyword.best.keyword)} (${f.keyword.best.share}%).` : T('Needs reels with an automation and 5+ comments.'), 4)}</div>`;
+
+  // ---- ranking ----
+  const maxR = Math.max(1, ...rep.reels.map((r) => r.ratio ?? 0));
+  const rows = rep.reels.map((r) => `<tr><td><div class="rp-hook">${thumbHtml(r.channel_id, r.media_id, 'rthumb')}<div style="min-width:0">
+      ${r.hook ? `<b translate="no">${cut(r.hook, 110)}</b>` : `<span class="nohook">${T('No script')}</span> <button class="linkbtn noprint" data-addsc="${r.channel_id}|${esc(r.media_id)}">${T('Add')}</button>`}
+      <span class="mute"><span translate="no">${esc(pubLabel(r))}</span>${r.estSec ? ` · ~${r.estSec} s` : ''}${r.keyword ? ` · <span translate="no">${esc(r.keyword)}</span>` : ''}</span></div></div></td>
+    <td>${xbar(r.ratio, maxR)}<span class="mute">${num(r.views)} views</span></td>
+    <td class="hide-s">${r.watchSec == null ? '—' : `${r.watchSec} s${r.watchPct != null ? `<span class="mute"> · ${r.watchPct}%</span>` : ''}`}</td>
+    <td class="hide-s">${r.savedPer1k ?? '—'}</td><td class="hide-s">${r.sharesPer1k ?? '—'}</td><td class="hide-s">${r.dmsPer1k ?? '—'}</td>
+    <td>${r.verdict ? `<span class="st ${VERD[r.verdict][0]}">${T(VERD[r.verdict][1])}</span>` : ''}</td></tr>`).join('');
+  const ranking = `<div class="card rise mt" style="--i:5"><h2>${ic('play')}${T('Reel ranking')}</h2>
+    <p class="mute" style="margin:-6px 0 14px">${T`Each reel against your typical (the median: ${num(Math.round(rep.typical))} views). Winner = 1.5× or more; low = 0.6× or less. The hook is what is said at the start of the video, taken from its script. "~s" is the script's approximate length.`}</p>
+    <div style="overflow-x:auto"><table class="tbl rt" style="min-width:760px"><thead><tr><th style="min-width:280px">${T('Reel and hook')}</th><th>${T('Views vs typical')}</th><th class="hide-s">${T('Watched (avg)')}</th><th class="hide-s">${T('Saves /1k')}</th><th class="hide-s">${T('Shares /1k')}</th><th class="hide-s">DMs /1k</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${rep.noScript ? `<p class="mute" style="margin:10px 0 0">${T`${rep.noScript} reels have no script, so they are left out of the hook analysis. Use «Add» to paste what is said in the video.`}</p>` : ''}</div>`;
+
+  // ---- hooks ----
+  const chips = TRAIT_CHIP();
+  const hookLi = (r, good) => `<li><span class="q"><span translate="no">"${cut(r.hook, 90)}"</span><span class="why">${(r.traits || []).map((t) => chips[t]).join(' · ') || T('no marked traits')}${r.watchSec != null ? ` · ${T`${r.watchSec} s watched`}` : ''}</span></span><span class="m" style="color:${good ? '#4fd08a' : '#ef5b6b'}">${r.ratio}×</span></li>`;
+  const tl = TRAIT_LABEL();
+  const traitRows = rep.traits.map((t) => { const mx = Math.max(t.withAvg, t.withoutAvg, 1); return `<div class="rp-tr"><span>${tl[t.key]}</span><span>${xbar(t.withAvg, mx)}<span class="mute">${t.withN} reels</span></span><span>${xbar(t.withoutAvg, mx)}<span class="mute">${t.withoutN} reels</span></span></div>`; }).join('');
+  const hooks = rep.bestHooks.length ? `<div class="grid g-2 mt">
+    <div class="card rise"><h2>${T('Hooks that worked')}</h2><p class="mute" style="margin:-6px 0 8px">${T('Most views against your typical')}</p><ul class="hl">${rep.bestHooks.map((r) => hookLi(r, true)).join('')}</ul></div>
+    <div class="card rise"><h2>${T('Hooks that did not work')}</h2><p class="mute" style="margin:-6px 0 8px">${T('Fewest views against your typical')}</p><ul class="hl">${rep.worstHooks.map((r) => hookLi(r, false)).join('')}</ul></div></div>
+    ${traitRows ? `<div class="card rise mt"><h2>${T('What your hooks have')}</h2><p class="mute" style="margin:-6px 0 10px">${T('Average times-your-typical of the reels whose hook has or lacks each trait. Only traits with 2+ reels on each side show up. These are simple rules: the AI gives the finer reading.')}</p>
+      <div class="rp-tr h"><span>${T('Trait')}</span><span>${T('With it')}</span><span>${T('Without it')}</span></div>${traitRows}</div>` : ''}` : `<div class="card rise mt"><h2>Hooks</h2><p class="mute">${T('At least 2 reels with a script are needed to compare hooks.')}</p></div>`;
+
+  // ---- when ----
+  const SL = SLOT_LABEL(), slotMax = Math.max(1, ...rep.slots.map((s) => s.ratio ?? 0));
+  const slotRows = rep.slots.map((s) => `<div class="bars-row"><span class="nm" style="width:150px">${SL[s.key]}</span>${s.n ? `<span class="tr"><i style="width:${Math.max(4, (s.ratio / slotMax) * 100)}%;background:${ratioColor(s.ratio)}"></i></span><span class="pc">${s.ratio}×</span><span class="mute" style="width:56px">${s.n} reels</span>` : `<span class="mute">${T('no reels')}</span>`}</div>`).join('');
+  const hasTimes = rep.slots.some((s) => s.n);
+  const when = `<div class="grid g-2 mt">
+    <div class="card rise"><h2>${T('When people comment')}</h2><p class="mute" style="margin:-6px 0 10px">${T('Comments by day and hour, last 30 days')}</p><div class="heat">${heatmap(rep.heatmap.grid)}</div></div>
+    <div class="card rise"><h2>${T('By posting time')}</h2><p class="mute" style="margin:-6px 0 10px">${T('Average times-your-typical by the slot each reel was posted in')}</p>
+      ${hasTimes ? slotRows + (rep.bestSlot ? `<p class="mute" style="margin:10px 0 0;color:var(--ink-2)">${T`Your best slot: <b>${SLOT_NAME()[rep.bestSlot.key]}</b> (${rep.bestSlot.ratio}×, ${rep.bestSlot.n} reels).`}</p>` : `<p class="mute" style="margin:10px 0 0">${T('Needs 2+ reels in at least two slots to pick one.')}</p>`)
+      : `<p class="mute">${T('Each reel\'s posting time is saved from now on (read every 30 minutes). This chart fills in by itself.')}</p>`}</div></div>`;
+
+  // ---- life + funnel ----
+  const FL = FUNNEL_LABEL(), fmax = Math.max(1, rep.funnel[0].n), fcol = ['var(--g-blue)', 'var(--g-violet)', 'var(--g-rose)', 'var(--g-amber)', '#4fd08a'];
+  const funnel = rep.funnel.map((s, i) => `<div class="rp-fr"><span>${FL[s.key]}</span><span class="tr"><i style="width:${Math.max(s.n ? 3 : 0, Math.sqrt(s.n / fmax) * 100)}%;background:${fcol[i]}"></i></span><span class="v">${num(s.n)}</span>${s.rate != null ? `<span class="drop">${s.rate}% ${funnelNote(s)}</span>` : ''}</div>`).join('');
+  const lifeCard = rep.life.winners || rep.life.others ? `${lifeSvg(rep.life)}<div class="rp-leg">${rep.life.winners ? `<span><i style="background:#4fd08a"></i>${T('Winners')} (${rep.life.winners.n})</span>` : ''}${rep.life.others ? `<span><i style="background:#f6b73f"></i>${T('The rest')} (${rep.life.others.n})${rep.life.others.pts[1] != null ? ` · ${T`${rep.life.others.pts[1]}% in 48 h`}` : ''}</span>` : ''}</div>`
+    : `<p class="mute">${T('Needs the snapshot from each reel\'s posting day and 3+ days of data.')}</p>`;
+  const lifeFun = `<div class="grid g-2 mt">
+    <div class="card rise"><h2>${T('How long a reel lives')}</h2><p class="mute" style="margin:-6px 0 10px">${T('% of its final views reached each day after posting')}</p>${lifeCard}</div>
+    <div class="card rise"><h2>${T('Funnel')}</h2><p class="mute" style="margin:-6px 0 12px">${T('From views to emails, reels in the period (square-root bars so the small steps show)')}</p><div class="rp-fun">${funnel}</div></div></div>`;
+
+  // ---- actions ----
+  const acts = `<div class="card rise mt"><h2>${T('What to do next week')}</h2><p class="mute" style="margin:-6px 0 8px">${T('From fixed rules on the numbers above. Only what has enough data shows up.')}</p>
+    ${rep.actions.length ? `<ul class="rp-acts">${rep.actions.map((a) => { const [t, d] = actionText(a); return `<li><div><b>${esc(t)}</b><span>${esc(d)}</span></div></li>`; }).join('')}</ul>` : `<p class="mute">${T('Not enough data yet to recommend anything with confidence.')}</p>`}</div>`;
+
+  $('#main').innerHTML = top + kpis + findings + aiBlock(rep.ai, rep) + ranking + hooks + when + lifeFun + acts
+    + `<p class="mute" style="margin:18px 0 0">${T`Generated ${new Date(rep.generatedAt).toLocaleString(LANG)}. Each reel's stats are the latest saved snapshot (Instagram only lets DMLand read the 12 most recent).`}</p>`;
+  fillThumbs();
+  bindRep();
+  document.querySelectorAll('[data-addsc]').forEach((b) => (b.onclick = () => { const [c, m] = b.dataset.addsc.split('|'); scriptModal(Number(c), m, viewReport); }));
+  bindAi();
+  function bindAi() { const b = $('#aiGo'); if (b) b.onclick = () => runAi(b); }
+  async function runAi(b) {
+    const label = b.innerHTML;
+    b.disabled = true; b.innerHTML = `<span class="spin"></span> ${T('Interpreting… (about 15 s)')}`;
+    try {
+      const x = await api('/api/report/ai', 'POST', { brand: S.brand === 'all' ? null : S.brand, range: S.repRange, lang: LANG, force: !!b.dataset.force });
+      const box = $('#aibox'); if (box) box.outerHTML = aiBlock({ ...rep.ai, saved: x }, rep);
+      bindAi();
+    } catch (e) { toast(e.message, 'bad'); b.disabled = false; b.innerHTML = label; }
+  }
+  function bindRep() {
+    document.querySelectorAll('#repseg button').forEach((b) => (b.onclick = () => { S.repRange = b.dataset.r; store.set('repRange', S.repRange); viewReport(); }));
+    const pr = $('#rpPrint'); if (pr) pr.onclick = () => window.print();
+  }
+}
+
 /* ---------- navigation ---------- */
-const VIEWS = { inicio: viewInicio, automatizaciones: viewAutos, actividad: viewActividad, analisis: viewAnalisis, contactos: viewContactos, conexion: viewConexion, ajustes: viewAjustes };
+const VIEWS = { inicio: viewInicio, automatizaciones: viewAutos, actividad: viewActividad, analisis: viewAnalisis, contactos: viewContactos, conexion: viewConexion, ajustes: viewAjustes, report: viewReport };
 async function render() {
   const t = (location.hash.replace('#/', '') || 'inicio'); S.tab = VIEWS[t] ? t : 'inicio';
   if (S.tab !== 'automatizaciones') S.editing = null;

@@ -26,6 +26,7 @@ It runs on your own computer with **Node 24 and no npm dependencies**. Your toke
 - **Multi-brand.** Connect several accounts and group them by brand.
 - **Safe sending.** Stays under Meta's hourly limit, sends the DM before the public reply, never answers a comment twice, and pauses and retries if Meta slows you down.
 - **Analytics.** Reels with views and DMs, funnel, best times to post, email list growth, speed to DM, uptime, and people who wrote back.
+- **Content report.** Which reels, hooks and posting times work, judged against your typical reel, with actions for next week. Optional AI reading through OpenRouter. See [docs/CONTENT-REPORT.md](docs/CONTENT-REPORT.md).
 - **Any language.** The dashboard is in English and ships with Spanish. Add another language by translating one file ([docs/LANGUAGES.md](docs/LANGUAGES.md)); an AI agent can do it for you at install time. Dark glass theme, light mode included.
 - **Zero dependencies, zero build.** One Node process, SQLite file, one HTML file.
 
@@ -106,13 +107,14 @@ DMLand only works while your computer and the program are on. To use the dashboa
 
 ## Privacy
 
-Everything is stored in `data/app.db` on your machine. DMLand talks only to the Meta Graph API. Emails you collect are personal data: you are responsible for consent and local privacy laws. See [SECURITY.md](SECURITY.md).
+Everything is stored in `data/app.db` on your machine. DMLand talks only to the Meta Graph API, unless you turn on the optional AI reading of the content report: then it also sends numbers and reel scripts (never usernames, emails or comments) to OpenRouter. Emails you collect are personal data: you are responsible for consent and local privacy laws. See [SECURITY.md](SECURITY.md).
 
 ## Documentation
 
 - [Connect to Instagram or a Facebook Page (Meta setup)](docs/META-SETUP.md)
 - [Posts and automations: how DMLand finds your posts](docs/POSTS-AND-AUTOMATIONS.md)
 - [How it works, limits and project layout](docs/HOW-IT-WORKS.md)
+- [Content report](docs/CONTENT-REPORT.md)
 - [Languages](docs/LANGUAGES.md)
 - [AI agent install guide](AGENTS.md)
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)

@@ -182,6 +182,24 @@ addCols('captures', [
   ['email_asked', 'INTEGER NOT NULL DEFAULT 1'],
 ]);
 
+// Content report: when each reel was posted, its script (what is SAID, not the caption) and the saved AI reading.
+db.exec(`
+CREATE TABLE IF NOT EXISTS media (            -- fixed data of each reel/post (filled when stats are taken)
+  channel_id INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  media_id TEXT NOT NULL, published_at TEXT, media_type TEXT, permalink TEXT,
+  PRIMARY KEY (channel_id, media_id)
+);
+CREATE TABLE IF NOT EXISTS reel_scripts (     -- the reel's script: the hook (first sentences) and the full text
+  channel_id INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  media_id TEXT NOT NULL, hook TEXT, script TEXT, words INTEGER, source TEXT,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (channel_id, media_id)
+);
+CREATE TABLE IF NOT EXISTS report_ai (        -- saved AI reading (it is not paid for twice)
+  key TEXT PRIMARY KEY, created_at TEXT DEFAULT CURRENT_TIMESTAMP, model TEXT, cost REAL, content TEXT NOT NULL
+);
+`);
+
 export const all =(sql, ...p) => db.prepare(sql).all(...p);
 export const get = (sql, ...p) => db.prepare(sql).get(...p);
 export const run = (sql, ...p) => db.prepare(sql).run(...p);

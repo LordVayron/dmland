@@ -11,7 +11,9 @@ Please do not open a public issue for security problems. Use GitHub's
 - Your Meta access token is stored in that database and shown masked (`••••1234`) in the dashboard.
 - Emails collected through the "ask for email first" mode are stored in the same database and
   can be exported as CSV from the Contacts page.
-- DMLand sends nothing to any third party. It only talks to the Meta Graph API.
+- DMLand sends nothing to any third party. It only talks to the Meta Graph API. The one exception is opt-in: if you set
+  `OPENROUTER_API_KEY`, the content report's **Interpret with AI** button sends numbers and reel scripts to OpenRouter
+  (never usernames, emails, comments or tokens).
 
 ## Keep safe
 

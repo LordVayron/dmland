@@ -74,7 +74,7 @@ for (const name of ['DEFAULT_ASK', 'DEFAULT_RETRY']) {
 const views = html.slice(html.indexOf('/* ---------- Home ---------- */'), html.indexOf('/* ---------- navigation ---------- */'));
 const literals = new Set([...views.matchAll(/>([^<>{}$`]*[A-Za-z][^<>{}$`]*)</g)].map((m) => m[1].replace(/\\'/g, "'").trim()).filter((t) => t && !/[|?]|' \+|\(s ==/.test(t)));
 for (const m of views.matchAll(/\bT\('((?:[^'\\]|\\.)*)'\)/g)) literals.add(m[1].replace(/\\'/g, "'"));
-const NO_TRANSLATION = new Set(['Instagram', 'Meta', 'Webhook', 'Verify token', 'English', 'Español', 'CSV', 'A/B', 'UTM', 'DM', 'DMs', 'Email', 'Emails', 'OK', 'App Secret', 'ID', 'Token', 'Reel', 'reel', 'Reels', 'Tag', 'Tags', 'Total', 'Error', 'Likes', 'emails', 'US', 'Link (https://…)']);
+const NO_TRANSLATION = new Set(['Instagram', 'Meta', 'Webhook', 'Verify token', 'English', 'Español', 'CSV', 'A/B', 'UTM', 'DM', 'DMs', 'Email', 'Emails', 'OK', 'App Secret', 'ID', 'Token', 'Reel', 'reel', 'Reels', 'Tag', 'Tags', 'Total', 'Error', 'Likes', 'emails', 'US', 'Link (https://…)', '⬇ PDF', 'DMs /1k', 'Hooks']);
 for (const [code, j] of Object.entries(langs)) {
   const ctx = load(j);
   const missing = [...literals].filter((t) => !NO_TRANSLATION.has(t) && ctx.tr(t) === t);
